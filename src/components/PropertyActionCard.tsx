@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Property } from '@/types/game';
-import { CircleDollarSign, Home } from 'lucide-react';
+import { X, CircleDollarSign, Home } from 'lucide-react';
 
 interface PropertyActionCardProps {
   property: Property;
@@ -21,6 +21,7 @@ interface PropertyActionCardProps {
   onPass: () => void;
   open: boolean;
   showActions?: boolean;
+  closeButton?: boolean;
 }
 
 const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
@@ -29,7 +30,8 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
   onBuy,
   onPass,
   open,
-  showActions = true
+  showActions = true,
+  closeButton = false
 }) => {
   const canAfford = playerMoney >= (property.price || 0);
 
@@ -86,6 +88,15 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
               ></div>
             </div>
           </CardHeader>
+          {/* Close button in the top-right corner */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-0 right-0 m-2 text-gray-500 hover:text-gray-800"
+            onClick={onPass} // Make sure to pass an onClose function
+          >
+            <X size={20} />
+          </Button>
           <CardContent className="p-0 space-y-3">
             <div className="flex items-center justify-between text-lg border-b pb-2">
               <span className="flex items-center gap-1 font-semibold">
