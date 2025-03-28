@@ -36,6 +36,7 @@ export interface GameState {
   winner?: string;
   maxPlayers: number;
   isCreator: boolean;
+  hasDiceRolled: boolean;
 }
 
 export interface Connection {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Player, GameState, GameEvent, Connection } from '../types/game';
 import PeerService from '../services/PeerService';
@@ -18,7 +17,6 @@ export const useGame = () => {
   const [isCreator, setIsCreator] = useState(false);
   const { toast } = useToast();
 
-  // Initialize peer connection
   const initializePeer = useCallback(async (name: string) => {
     try {
       const peerId = await PeerService.initialize(name);
@@ -35,7 +33,6 @@ export const useGame = () => {
     }
   }, [toast]);
 
-  // Create a new game
   const createGame = useCallback(async (name: string, players: number) => {
     setPlayerName(name);
     setMaxPlayers(players);
@@ -63,15 +60,14 @@ export const useGame = () => {
       gameStarted: false,
       gameOver: false,
       maxPlayers: players,
-      isCreator: true
+      isCreator: true,
+      hasDiceRolled: false
     });
     
-    // Listen for connections
     PeerService.on('peer-disconnected', (data) => {
       console.log('Player disconnected:', data.peerId);
       setConnections(prev => prev.filter(conn => conn.id !== data.peerId));
       
-      // Update game state to remove disconnected player
       setGameState(prevState => {
         if (!prevState) return null;
         
@@ -87,11 +83,9 @@ export const useGame = () => {
       });
     });
     
-    // Handle player join events
     PeerService.on('join-game', (data) => {
       console.log('Player joined:', data);
       
-      // Add player to connections
       setConnections(prev => [...prev, { id: data.id, name: data.name }]);
       
       toast({
@@ -99,7 +93,6 @@ export const useGame = () => {
         description: `${data.name} has joined the game`
       });
       
-      // Send current game state to new player
       if (gameState) {
         PeerService.sendToPeer(data.id, {
           type: 'game-state',
@@ -111,7 +104,6 @@ export const useGame = () => {
     return peerId;
   }, [initializePeer, toast]);
 
-  // Join an existing game
   const joinGame = useCallback(async (name: string, hostId: string) => {
     setPlayerName(name);
     setIsCreator(false);
@@ -120,10 +112,8 @@ export const useGame = () => {
     if (!peerId) return null;
     
     try {
-      // Connect to host
       await PeerService.connectToPeer(hostId);
       
-      // Send join event to host
       PeerService.sendToAll({
         type: 'join-game',
         payload: {
@@ -132,7 +122,6 @@ export const useGame = () => {
         }
       });
       
-      // Listen for game state updates
       PeerService.on('game-state', (state) => {
         console.log('Received game state:', state);
         setGameState(prevState => ({
@@ -141,7 +130,6 @@ export const useGame = () => {
         }));
       });
       
-      // Listen for game start event
       PeerService.on('start-game', () => {
         setGameState(prevState => {
           if (!prevState) return null;
@@ -164,11 +152,9 @@ export const useGame = () => {
     }
   }, [initializePeer, toast]);
 
-  // Start the game
   const startGame = useCallback(() => {
     if (!gameState || !isCreator) return;
     
-    // Create player list
     const humanPlayers = [
       {
         id: PeerService.getCurrentPeerId() || '',
@@ -194,7 +180,6 @@ export const useGame = () => {
       }))
     ];
     
-    // Add bots if needed
     const botsNeeded = Math.max(0, maxPlayers - humanPlayers.length);
     const botPlayers = Array.from({ length: botsNeeded }, (_, index) => ({
       id: `bot-${index}`,
@@ -210,17 +195,16 @@ export const useGame = () => {
     
     const players = [...humanPlayers, ...botPlayers];
     
-    // Update game state
     const updatedState: GameState = {
       ...gameState,
       players,
       gameStarted: true,
-      currentPlayer: 0
+      currentPlayer: 0,
+      hasDiceRolled: false
     };
     
     setGameState(updatedState);
     
-    // Notify all players that the game has started
     PeerService.sendToAll({
       type: 'game-state',
       payload: updatedState
@@ -237,68 +221,90 @@ export const useGame = () => {
     });
   }, [gameState, isCreator, connections, maxPlayers, playerName, toast]);
 
-  // Roll the dice
   const rollDice = useCallback(() => {
     if (!gameState) return;
+    
+    const currentPlayerIndex = gameState.currentPlayer;
+    const currentPlayer = gameState.players[currentPlayerIndex];
+    const isMyTurn = currentPlayer.id === PeerService.getCurrentPeerId();
+    
+    if (!isMyTurn || gameState.hasDiceRolled) {
+      console.log("Not your turn or already rolled");
+      return;
+    }
     
     const dice1 = Math.floor(Math.random() * 6) + 1;
     const dice2 = Math.floor(Math.random() * 6) + 1;
     const diceSum = dice1 + dice2;
     
-    // Update current player position
-    const currentPlayerIndex = gameState.currentPlayer;
     const updatedPlayers = [...gameState.players];
-    const currentPlayer = { ...updatedPlayers[currentPlayerIndex] };
+    const updatedPlayer = { ...currentPlayer };
     
-    // Calculate new position
-    currentPlayer.position = (currentPlayer.position + diceSum) % 40;
-    updatedPlayers[currentPlayerIndex] = currentPlayer;
+    updatedPlayer.position = (updatedPlayer.position + diceSum) % 40;
+    updatedPlayers[currentPlayerIndex] = updatedPlayer;
     
     const updatedState: GameState = {
       ...gameState,
       players: updatedPlayers,
-      dice: [dice1, dice2]
+      dice: [dice1, dice2],
+      hasDiceRolled: true
     };
     
     setGameState(updatedState);
     
-    // Notify all players about the updated state
     if (isCreator) {
       PeerService.sendToAll({
         type: 'game-state',
         payload: updatedState
       });
+    } else {
+      PeerService.sendToAll({
+        type: 'dice-rolled',
+        payload: {
+          playerId: PeerService.getCurrentPeerId(),
+          dice: [dice1, dice2],
+          newPosition: updatedPlayer.position
+        }
+      });
     }
   }, [gameState, isCreator]);
 
-  // End the current player's turn
   const endTurn = useCallback(() => {
     if (!gameState) return;
+    
+    if (!gameState.hasDiceRolled) {
+      console.log("Must roll dice before ending turn");
+      return;
+    }
     
     const nextPlayerIndex = (gameState.currentPlayer + 1) % gameState.players.length;
     
     const updatedState: GameState = {
       ...gameState,
-      currentPlayer: nextPlayerIndex
+      currentPlayer: nextPlayerIndex,
+      hasDiceRolled: false
     };
     
     setGameState(updatedState);
     
-    // Notify all players about the updated state
     if (isCreator) {
       PeerService.sendToAll({
         type: 'game-state',
         payload: updatedState
       });
       
-      // Handle bot turns
       if (gameState.players[nextPlayerIndex].type === 'bot') {
-        // Simulate bot thinking
         setTimeout(() => {
-          // Bot rolls dice
+          const botUpdatedState = { ...updatedState, hasDiceRolled: true };
+          setGameState(botUpdatedState);
+          
+          PeerService.sendToAll({
+            type: 'game-state',
+            payload: botUpdatedState
+          });
+          
           rollDice();
           
-          // Bot buys property if it can (simple AI)
           const currentPlayer = gameState.players[nextPlayerIndex];
           const propertyAtPosition = gameState.properties.find(
             p => p.position === currentPlayer.position
@@ -314,23 +320,33 @@ export const useGame = () => {
             }, 1000);
           }
           
-          // Bot ends turn
           setTimeout(() => {
             endTurn();
           }, 2000);
         }, 1500);
       }
+    } else {
+      PeerService.sendToAll({
+        type: 'end-turn',
+        payload: {
+          playerId: PeerService.getCurrentPeerId()
+        }
+      });
     }
   }, [gameState, isCreator, rollDice]);
 
-  // Buy property
   const buyProperty = useCallback(() => {
     if (!gameState) return;
     
     const currentPlayerIndex = gameState.currentPlayer;
     const currentPlayer = gameState.players[currentPlayerIndex];
     
-    // Find property at current position
+    const isMyTurn = currentPlayer.id === PeerService.getCurrentPeerId();
+    if (!isMyTurn || !gameState.hasDiceRolled) {
+      console.log("Not your turn or dice not rolled yet");
+      return;
+    }
+    
     const propertyIndex = gameState.properties.findIndex(
       p => p.position === currentPlayer.position
     );
@@ -339,10 +355,8 @@ export const useGame = () => {
     
     const property = gameState.properties[propertyIndex];
     
-    // Check if property can be bought
     if (property.owner || currentPlayer.money < property.price) return;
     
-    // Update player's money and properties
     const updatedPlayers = [...gameState.players];
     const updatedPlayer = { 
       ...currentPlayer,
@@ -351,7 +365,6 @@ export const useGame = () => {
     };
     updatedPlayers[currentPlayerIndex] = updatedPlayer;
     
-    // Update property owner
     const updatedProperties = [...gameState.properties];
     updatedProperties[propertyIndex] = {
       ...property,
@@ -366,7 +379,6 @@ export const useGame = () => {
     
     setGameState(updatedState);
     
-    // Notify all players about the updated state
     if (isCreator) {
       PeerService.sendToAll({
         type: 'game-state',
@@ -377,10 +389,161 @@ export const useGame = () => {
         title: "Property Purchased",
         description: `${currentPlayer.name} bought ${property.name} for $${property.price}`
       });
+    } else {
+      PeerService.sendToAll({
+        type: 'buy-property',
+        payload: {
+          playerId: PeerService.getCurrentPeerId(),
+          propertyId: property.id
+        }
+      });
     }
   }, [gameState, isCreator, toast]);
 
-  // Clean up
+  useEffect(() => {
+    if (isCreator) {
+      PeerService.on('dice-rolled', (data) => {
+        if (!gameState) return;
+        
+        const { playerId, dice, newPosition } = data;
+        
+        const playerIndex = gameState.players.findIndex(p => p.id === playerId);
+        if (playerIndex === -1 || playerIndex !== gameState.currentPlayer) return;
+        
+        const updatedPlayers = [...gameState.players];
+        updatedPlayers[playerIndex] = {
+          ...updatedPlayers[playerIndex],
+          position: newPosition
+        };
+        
+        const updatedState: GameState = {
+          ...gameState,
+          players: updatedPlayers,
+          dice,
+          hasDiceRolled: true
+        };
+        
+        setGameState(updatedState);
+        
+        PeerService.sendToAll({
+          type: 'game-state',
+          payload: updatedState
+        });
+      });
+      
+      PeerService.on('end-turn', (data) => {
+        if (!gameState) return;
+        
+        const { playerId } = data;
+        
+        const playerIndex = gameState.players.findIndex(p => p.id === playerId);
+        if (playerIndex === -1 || playerIndex !== gameState.currentPlayer) return;
+        
+        const nextPlayerIndex = (gameState.currentPlayer + 1) % gameState.players.length;
+        
+        const updatedState: GameState = {
+          ...gameState,
+          currentPlayer: nextPlayerIndex,
+          hasDiceRolled: false
+        };
+        
+        setGameState(updatedState);
+        
+        PeerService.sendToAll({
+          type: 'game-state',
+          payload: updatedState
+        });
+        
+        if (gameState.players[nextPlayerIndex].type === 'bot') {
+          setTimeout(() => {
+            const botUpdatedState = { ...updatedState, hasDiceRolled: true };
+            setGameState(botUpdatedState);
+            
+            PeerService.sendToAll({
+              type: 'game-state',
+              payload: botUpdatedState
+            });
+            
+            rollDice();
+            
+            const currentPlayer = gameState.players[nextPlayerIndex];
+            const propertyAtPosition = gameState.properties.find(
+              p => p.position === currentPlayer.position
+            );
+            
+            if (
+              propertyAtPosition && 
+              !propertyAtPosition.owner && 
+              currentPlayer.money >= (propertyAtPosition.price || 0)
+            ) {
+              setTimeout(() => {
+                buyProperty();
+              }, 1000);
+            }
+            
+            setTimeout(() => {
+              endTurn();
+            }, 2000);
+          }, 1500);
+        }
+      });
+      
+      PeerService.on('buy-property', (data) => {
+        if (!gameState) return;
+        
+        const { playerId, propertyId } = data;
+        
+        const playerIndex = gameState.players.findIndex(p => p.id === playerId);
+        if (playerIndex === -1 || playerIndex !== gameState.currentPlayer) return;
+        
+        const propertyIndex = gameState.properties.findIndex(p => p.id === propertyId);
+        if (propertyIndex === -1) return;
+        
+        const property = gameState.properties[propertyIndex];
+        const player = gameState.players[playerIndex];
+        
+        if (property.owner || player.money < property.price) return;
+        
+        const updatedPlayers = [...gameState.players];
+        updatedPlayers[playerIndex] = {
+          ...player,
+          money: player.money - property.price,
+          properties: [...player.properties, propertyId]
+        };
+        
+        const updatedProperties = [...gameState.properties];
+        updatedProperties[propertyIndex] = {
+          ...property,
+          owner: playerId
+        };
+        
+        const updatedState: GameState = {
+          ...gameState,
+          players: updatedPlayers,
+          properties: updatedProperties
+        };
+        
+        setGameState(updatedState);
+        
+        PeerService.sendToAll({
+          type: 'game-state',
+          payload: updatedState
+        });
+        
+        toast({
+          title: "Property Purchased",
+          description: `${player.name} bought ${property.name} for $${property.price}`
+        });
+      });
+    }
+    
+    return () => {
+      PeerService.off('dice-rolled');
+      PeerService.off('end-turn');
+      PeerService.off('buy-property');
+    };
+  }, [gameState, isCreator, rollDice, buyProperty, endTurn, toast]);
+
   useEffect(() => {
     return () => {
       PeerService.disconnect();

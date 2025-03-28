@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, useTexture } from '@react-three/drei';
@@ -163,7 +162,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
   
   const currentPlayerIndex = gameState.currentPlayer;
   const currentPlayer = gameState.players[currentPlayerIndex];
-  const isCurrentPlayerTurn = gameState.isCreator && currentPlayerIndex === 0;
+  
+  // Check if it's the current client's turn
+  const isMyTurn = gameState.players[currentPlayerIndex]?.id === PeerService.getCurrentPeerId();
   
   useEffect(() => {
     if (currentPlayer) {
@@ -195,6 +196,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
       onRollDice();
     }, 1000);
   };
+
+  // Import PeerService at the top
+  const PeerService = require('../services/PeerService').default;
   
   return (
     <div className="flex flex-col h-screen">
@@ -250,7 +254,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 <div className="space-y-2">
                   <Button
                     onClick={handleRollDice}
-                    disabled={!isCurrentPlayerTurn || diceRolling}
+                    disabled={!isMyTurn || diceRolling || gameState.hasDiceRolled}
                     className="bg-game-primary hover:bg-game-primary/90 flex items-center gap-2"
                   >
                     <Dices size={16} />
@@ -259,7 +263,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                   
                   <Button
                     onClick={onEndTurn}
-                    disabled={!isCurrentPlayerTurn}
+                    disabled={!isMyTurn || !gameState.hasDiceRolled}
                     variant="outline"
                     className="w-full border-game-primary/30"
                   >
@@ -275,7 +279,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
               <CardContent className="p-4">
                 <Button
                   onClick={onBuyProperty}
-                  disabled={!isCurrentPlayerTurn}
+                  disabled={!isMyTurn || !gameState.hasDiceRolled}
                   className="bg-game-secondary hover:bg-game-secondary/90 flex items-center gap-2"
                 >
                   <Home size={16} />
