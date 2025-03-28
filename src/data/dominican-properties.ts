@@ -1,7 +1,31 @@
 
-import { Property } from '../types/game';
+import { Property, PropertyType } from '../types/game';
+import { DEFAULT_SURPRISE_COLOR, DEFAULT_BOX_COLOR } from '../lib/colors';
 
 export const dominicanProperties: Property[] = [
+  // Special cards
+  {
+    id: 'suprise-1',
+    name: '¡Sorpresa!',
+    price: 0,
+    rent: [],
+    color: DEFAULT_SURPRISE_COLOR,
+    houses: 0,
+    position: 2,
+    mortgaged: false,
+    type: 'suprise' as PropertyType
+  },
+  {
+    id: 'box-1', 
+    name: 'Caja de Comunidad',
+    price: 0,
+    rent: [],
+    color: DEFAULT_BOX_COLOR,
+    houses: 0,
+    position: 4,
+    mortgaged: false,
+    type: 'box' as PropertyType
+  },
   // Brown
   {
     id: 'property-1',
@@ -11,7 +35,8 @@ export const dominicanProperties: Property[] = [
     color: '#955436',
     houses: 0,
     position: 1,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-3',
@@ -21,7 +46,8 @@ export const dominicanProperties: Property[] = [
     color: '#955436',
     houses: 0,
     position: 3,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Light Blue
@@ -33,7 +59,8 @@ export const dominicanProperties: Property[] = [
     color: '#AAE0FA',
     houses: 0,
     position: 6,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-8',
@@ -43,7 +70,8 @@ export const dominicanProperties: Property[] = [
     color: '#AAE0FA',
     houses: 0,
     position: 8,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-9',
@@ -53,7 +81,8 @@ export const dominicanProperties: Property[] = [
     color: '#AAE0FA',
     houses: 0,
     position: 9,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Pink
@@ -65,7 +94,8 @@ export const dominicanProperties: Property[] = [
     color: '#D93A96',
     houses: 0,
     position: 11,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-13',
@@ -75,7 +105,8 @@ export const dominicanProperties: Property[] = [
     color: '#D93A96',
     houses: 0,
     position: 13,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-14',
@@ -85,7 +116,8 @@ export const dominicanProperties: Property[] = [
     color: '#D93A96',
     houses: 0,
     position: 14,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Orange
@@ -97,7 +129,8 @@ export const dominicanProperties: Property[] = [
     color: '#F7941D',
     houses: 0,
     position: 16,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-18',
@@ -107,7 +140,8 @@ export const dominicanProperties: Property[] = [
     color: '#F7941D',
     houses: 0,
     position: 18,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-19',
@@ -117,7 +151,8 @@ export const dominicanProperties: Property[] = [
     color: '#F7941D',
     houses: 0,
     position: 19,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Red
@@ -129,7 +164,8 @@ export const dominicanProperties: Property[] = [
     color: '#ED1B24',
     houses: 0,
     position: 21,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-23',
@@ -139,7 +175,8 @@ export const dominicanProperties: Property[] = [
     color: '#ED1B24',
     houses: 0,
     position: 23,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-24',
@@ -149,7 +186,8 @@ export const dominicanProperties: Property[] = [
     color: '#ED1B24',
     houses: 0,
     position: 24,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Yellow
@@ -161,7 +199,8 @@ export const dominicanProperties: Property[] = [
     color: '#FFF200',
     houses: 0,
     position: 26,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-27',
@@ -171,7 +210,8 @@ export const dominicanProperties: Property[] = [
     color: '#FFF200',
     houses: 0,
     position: 27,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-29',
@@ -181,7 +221,8 @@ export const dominicanProperties: Property[] = [
     color: '#FFF200',
     houses: 0,
     position: 29,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Green
@@ -193,7 +234,8 @@ export const dominicanProperties: Property[] = [
     color: '#00A551',
     houses: 0,
     position: 31,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-32',
@@ -203,7 +245,8 @@ export const dominicanProperties: Property[] = [
     color: '#00A551',
     houses: 0,
     position: 32,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-34',
@@ -213,7 +256,8 @@ export const dominicanProperties: Property[] = [
     color: '#00A551',
     houses: 0,
     position: 34,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Dark Blue
@@ -225,7 +269,8 @@ export const dominicanProperties: Property[] = [
     color: '#0055A4',
     houses: 0,
     position: 37,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   {
     id: 'property-39',
@@ -235,7 +280,8 @@ export const dominicanProperties: Property[] = [
     color: '#0055A4',
     houses: 0,
     position: 39,
-    mortgaged: false
+    mortgaged: false,
+    type: 'property' as PropertyType
   },
   
   // Railroads
@@ -247,7 +293,8 @@ export const dominicanProperties: Property[] = [
     color: 'railroad',
     houses: 0,
     position: 5,
-    mortgaged: false
+    mortgaged: false,
+    type: 'railroad' as PropertyType
   },
   {
     id: 'railroad-15',
@@ -257,7 +304,8 @@ export const dominicanProperties: Property[] = [
     color: 'railroad',
     houses: 0,
     position: 15,
-    mortgaged: false
+    mortgaged: false,
+    type: 'railroad' as PropertyType
   },
   {
     id: 'railroad-25',
@@ -267,7 +315,8 @@ export const dominicanProperties: Property[] = [
     color: 'railroad',
     houses: 0,
     position: 25,
-    mortgaged: false
+    mortgaged: false,
+    type: 'railroad' as PropertyType
   },
   {
     id: 'railroad-35',
@@ -277,7 +326,8 @@ export const dominicanProperties: Property[] = [
     color: 'railroad',
     houses: 0,
     position: 35,
-    mortgaged: false
+    mortgaged: false,
+    type: 'railroad' as PropertyType
   },
   
   // Utilities
@@ -289,7 +339,8 @@ export const dominicanProperties: Property[] = [
     color: 'utility',
     houses: 0,
     position: 12,
-    mortgaged: false
+    mortgaged: false,
+    type: 'utility' as PropertyType
   },
   {
     id: 'utility-28',
@@ -299,6 +350,7 @@ export const dominicanProperties: Property[] = [
     color: 'utility',
     houses: 0,
     position: 28,
-    mortgaged: false
+    mortgaged: false,
+    type: 'utility' as PropertyType
   }
 ];

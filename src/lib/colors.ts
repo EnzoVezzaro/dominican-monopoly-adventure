@@ -1,23 +1,25 @@
-import { Property } from "@/types/game";
+import { Property, PropertyType } from "@/types/game";
 
-const DEFUALT_COLOR = '#cccccc';
-const DEFUALT_PROPERTY_COLOR = '#cccccc';
-const DEFUALT_RAILROAD_COLOR = '#534741';
-const DEFUALT_UTILITY_COLOR = '#ff4e00';
-
+export const DEFAULT_COLOR = '#cccccc';
+export const DEFAULT_PROPERTY_COLOR = '#cccccc';
+export const DEFAULT_RAILROAD_COLOR = '#534741';
+export const DEFAULT_UTILITY_COLOR = '#ff4e00';
+export const DEFAULT_SURPRISE_COLOR = '#800080';
+export const DEFAULT_BOX_COLOR = '#FFD700';
 
 export const getPropertyColor = (property: Property) => {
-  let colorProperty;
-  switch (property?.color) {
+  if (!property) return DEFAULT_PROPERTY_COLOR;
+  
+  switch (property.type) {
     case 'railroad':
-      colorProperty = DEFUALT_RAILROAD_COLOR
-      break;
+      return DEFAULT_RAILROAD_COLOR;
     case 'utility':
-      colorProperty = DEFUALT_UTILITY_COLOR
-      break;
+      return DEFAULT_UTILITY_COLOR;
+    case 'suprise':
+      return DEFAULT_SURPRISE_COLOR;
+    case 'box':
+      return DEFAULT_BOX_COLOR;
     default:
-      colorProperty = property ? property.color : DEFUALT_PROPERTY_COLOR
-      break;
+      return property.color || DEFAULT_PROPERTY_COLOR;
   }
-  return colorProperty;
 }

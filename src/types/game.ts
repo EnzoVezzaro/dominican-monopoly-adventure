@@ -13,6 +13,8 @@ export interface Player {
   isJailed: boolean;
 }
 
+export type PropertyType = "property" | "utility" | "railroad" | "suprise" | "box";
+
 export interface Property {
   id: string;
   name: string;
@@ -23,6 +25,7 @@ export interface Property {
   houses: number;
   position: number;
   mortgaged: boolean;
+  type: PropertyType;
 }
 
 export interface GameState {
