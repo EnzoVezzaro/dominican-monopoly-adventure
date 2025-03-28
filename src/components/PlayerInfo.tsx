@@ -1,17 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CircleDollarSign, Home } from 'lucide-react';
-import { Player } from '@/types/game';
+import { CircleDollarSign, Home, X } from 'lucide-react';
+import { Player, Property } from '@/types/game';
+import PropertyActionCard from './PropertyActionCard';
 
 interface PlayerInfoProps {
   player: Player;
   isCurrentTurn: boolean;
+  properties: Property[];
 }
 
-const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn }) => {
+const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn, properties }) => {
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   return (
-    <Card className={`w-60 overflow-hidden shadow-md transition-all ${isCurrentTurn ? 'border-2 border-game-primary' : ''}`}>
+    <>
+      <Card className={`w-60 overflow-hidden shadow-md transition-all ${isCurrentTurn ? 'border-2 border-game-primary' : ''}`}>
       <CardContent className="p-3">
         <div className="flex items-center gap-2">
           <div 
@@ -32,21 +36,25 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn }) => {
               Properties
             </div>
             <div className="flex flex-wrap gap-1">
-              {player.properties.map((propertyId) => (
-                <div 
-                  key={propertyId}
-                  className="w-4 h-4 rounded-full border border-gray-300"
-                  style={{ 
-                    backgroundColor: propertyId.includes('railroad') 
-                      ? '#000' 
-                      : propertyId.includes('utility')
-                      ? '#aaa'
-                      : propertyId.split('-')[0] === 'property' 
-                      ? `${player.color}` 
-                      : '#ccc'
-                  }}
-                ></div>
-              ))}
+              {player.properties.map((propertyId) => {
+                const property = properties.find(p => p.id === propertyId);
+                return (
+                  <div 
+                    key={propertyId}
+                    className="w-4 h-4 rounded-full border border-gray-300 cursor-pointer hover:opacity-80"
+                    style={{ 
+                      backgroundColor: propertyId.includes('railroad') 
+                        ? '#000' 
+                        : propertyId.includes('utility')
+                        ? '#aaa'
+                        : propertyId.split('-')[0] === 'property' 
+                        ? `${player.color}` 
+                        : '#ccc'
+                    }}
+                    onClick={() => property && setSelectedProperty(property)}
+                  ></div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -55,7 +63,29 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn }) => {
           <div className="mt-1 text-xs text-muted-foreground">AI Bot</div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+
+      {selectedProperty && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="relative bg-white rounded-lg p-6 max-w-md w-full">
+          <button 
+            onClick={() => setSelectedProperty(null)}
+            className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100"
+          >
+            <X size={20} />
+          </button>
+          <PropertyActionCard 
+            property={selectedProperty}
+            playerMoney={player.money}
+            onBuy={() => {}}
+            onPass={() => setSelectedProperty(null)}
+            open={true}
+            showActions={false}
+          />
+        </div>
+      </div>
+      )}
+    </>
   );
 };
 

@@ -249,6 +249,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
               key={player.id} 
               player={player} 
               isCurrentTurn={index === currentPlayerIndex}
+              properties={gameState.properties}
             />
           ))}
         </div>

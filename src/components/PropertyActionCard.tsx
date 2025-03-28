@@ -12,14 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Property } from '@/types/game';
-import { CircleDollarSign, Home, Hotel } from 'lucide-react';
+import { CircleDollarSign, Home } from 'lucide-react';
 
 interface PropertyActionCardProps {
   property: Property;
   playerMoney: number;
   onBuy: () => void;
   onPass: () => void;
-  open: boolean; // Controlled externally
+  open: boolean;
+  showActions?: boolean;
 }
 
 const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
@@ -27,7 +28,8 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
   playerMoney,
   onBuy,
   onPass,
-  open
+  open,
+  showActions = true
 }) => {
   const canAfford = playerMoney >= (property.price || 0);
 
@@ -51,14 +53,13 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
           <div
             key={index}
             className={`flex justify-between ${
-              index === property.houses ? 'font-bold text-blue-600' : '' // Highlight current rent level
+              index === property.houses ? 'font-bold text-blue-600' : ''
             }`}
           >
             <span>{rentLevels[index] || `Level ${index}`}</span>
             <span>${rentValue}</span>
           </div>
         ))}
-        {/* Add logic for utility/railroad rent multipliers if needed */}
       </div>
     );
   };
@@ -67,9 +68,11 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
     <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onPass()}>
       <AlertDialogContent className="max-w-sm">
         <AlertDialogHeader>
-          <AlertDialogTitle>Property Action: {property.name}</AlertDialogTitle>
+          <AlertDialogTitle>{property.name}</AlertDialogTitle>
           <AlertDialogDescription>
-            You landed on {property.name}. You can choose to buy it or pass.
+            {showActions 
+              ? `You landed on ${property.name}. You can choose to buy it or pass.`
+              : `Viewing ${property.name} details`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -96,30 +99,28 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
               {renderRentDetails()}
             </div>
 
-            {!canAfford && (
+            {!canAfford && showActions && (
               <p className="text-red-600 font-semibold pt-2">You cannot afford this property.</p>
             )}
           </CardContent>
         </Card>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel asChild>
-            <Button variant="outline" onClick={onPass}>Pass</Button>
-          </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button
-              onClick={() => {
-                if (canAfford) {
-                  onBuy();
-                }
-              }}
-              disabled={!canAfford}
-              className="bg-game-secondary hover:bg-game-secondary/90"
-            >
-              <Home size={16} className="mr-2" /> Buy Property
-            </Button>
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        {showActions && (
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline" onClick={onPass}>Pass</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                onClick={() => canAfford && onBuy()}
+                disabled={!canAfford}
+                className="bg-game-secondary hover:bg-game-secondary/90"
+              >
+                <Home size={16} className="mr-2" /> Buy Property
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
