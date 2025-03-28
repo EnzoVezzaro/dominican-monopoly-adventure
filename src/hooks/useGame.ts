@@ -652,12 +652,48 @@ export const useGame = () => {
       PeerService.off('end-turn', handleEndTurn);
       PeerService.off('buy-property', handleBuyProperty);
     };
-  }, [isCreator, toast]); // Dependencies: isCreator, toast.
+  }, [isCreator, toast]); // Dependencies: isCreator, toast. gameState is accessed via ref.
+
+  // Effect for Creator to listen for general state updates from clients
+  useEffect(() => {
+    if (!isCreator) return; // Only creator needs this generic listener
+
+    const handleGameStateUpdate = (state: GameState) => {
+      console.log('Creator received game state update:', state);
+      // Basic validation: Ensure the received state ID matches the game ID
+      if (state.id !== gameId) {
+        console.warn("Received game state with mismatched ID. Ignoring.");
+        return;
+      }
+      // More robust validation could be added here (e.g., sequence numbers)
+
+      // Ensure properties have owner field if missing
+      const propertiesWithOwner = state.properties.map(p => ({ ...p, owner: p.owner || null }));
+
+      // Update the creator's state. This will trigger other effects (like the bot turn effect).
+      setGameState(prevState => ({
+        ...state,
+        properties: propertiesWithOwner,
+        isCreator: true // Ensure creator status is maintained
+      }));
+    };
+
+    PeerService.on('game-state', handleGameStateUpdate);
+
+    return () => {
+      PeerService.off('game-state', handleGameStateUpdate);
+    };
+    // Depend on gameId to ensure the correct ID is used in validation
+  }, [isCreator, gameId]);
+
 
   // THIS useEffect is responsible for triggering bot turns
   useEffect(() => {
-    // Check if creator, game started, not over, and current player is a bot
-    if (isCreator && gameState?.gameStarted && !gameState.gameOver) {
+    // Log dependencies every time this effect runs
+    console.log(`Bot Turn useEffect Check: isCreator=${isCreator}, gameStarted=${gameState?.gameStarted}, gameOver=${gameState?.gameOver}, currentPlayer=${gameState?.currentPlayer}, playerType=${gameState?.players[gameState?.currentPlayer ?? -1]?.type}`);
+
+    // Check if creator, game started, not over, and current player exists and is a bot
+    if (isCreator && gameState?.gameStarted && !gameState.gameOver && gameState.players && gameState.currentPlayer < gameState.players.length) {
       const currentPlayerIndex = gameState.currentPlayer;
       const currentPlayer = gameState.players[currentPlayerIndex];
       
@@ -672,15 +708,26 @@ export const useGame = () => {
                 latestState.players[currentPlayerIndex]?.type === 'bot') {
                  handleBotTurn(currentPlayerIndex);
             } else {
-                 console.log(`Bot turn trigger for index ${currentPlayerIndex} aborted due to state change during timeout. Current player is now: ${latestState?.currentPlayer}`);
+                 console.log(`Bot turn trigger for index ${currentPlayerIndex} aborted (state changed during timeout). Current player: ${latestState?.currentPlayer}, Expected bot type: ${latestState?.players[currentPlayerIndex]?.type}`);
             }
         }, 150); // 150ms delay - slightly longer to be safer
-        
+
         // Cleanup function for the timeout
         return () => clearTimeout(timeoutId);
+      } else {
+         // Log if the current player is not a bot when the effect runs
+         if (currentPlayer) { // Check if currentPlayer exists before logging type
+            console.log(`Bot Turn useEffect Check: Current player ${currentPlayerIndex} is type ${currentPlayer.type}, not triggering bot turn.`);
+         } else {
+            console.log(`Bot Turn useEffect Check: Current player ${currentPlayerIndex} not found.`);
+         }
       }
+    } else {
+        // Log why the main condition failed
+        console.log(`Bot Turn useEffect Check: Main condition failed (isCreator=${isCreator}, gameStarted=${gameState?.gameStarted}, gameOver=${gameState?.gameOver}, playersExist=${!!gameState?.players}, indexValid=${gameState ? gameState.currentPlayer < (gameState.players?.length ?? 0) : 'N/A'})`);
     }
-  }, [gameState?.currentPlayer, gameState?.gameStarted, gameState?.gameOver, isCreator, handleBotTurn]); // Key dependencies
+    // Using gameState directly as a dependency might help catch nested changes more reliably
+  }, [gameState, isCreator, handleBotTurn]); // Adjusted dependencies
 
 
   // Effect for cleanup on unmount
