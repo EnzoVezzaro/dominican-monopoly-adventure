@@ -13,7 +13,7 @@ import PeerService from '@/services/PeerService';
 
 interface GameBoardProps {
   gameState: GameState;
-  onRollDice: () => void;
+  onRollDice: (dice: [number, number]) => void;
   onEndTurn: () => void;
   onBuyProperty: () => void;
 }
@@ -154,7 +154,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onEndTurn,
   onBuyProperty
 }) => {
-  const [diceValues, setDiceValues] = useState<number[]>([1, 1]);
+  const [diceValues, setDiceValues] = useState<[number, number]>([1, 1]);
   const [diceRolling, setDiceRolling] = useState(false);
   const [canBuy, setCanBuy] = useState(false);
   
@@ -182,19 +182,28 @@ const GameBoard: React.FC<GameBoardProps> = ({
   
   const handleRollDice = () => {
     setDiceRolling(true);
-    
+  
+    // Counter to track the number of rolls
+    let rollCount = 0;
+  
+    // To hold the latest dice roll values
+    let latestDiceValues: [number, number] = [0, 0];
+  
     const rollInterval = setInterval(() => {
-      setDiceValues([
+      latestDiceValues = [
         Math.floor(Math.random() * 6) + 1,
         Math.floor(Math.random() * 6) + 1
-      ]);
+      ];
+      setDiceValues(latestDiceValues); // Update the state with the latest values
+      rollCount += 1;
+  
+      // Stop after 4 rolls
+      if (rollCount === 4) {
+        clearInterval(rollInterval);
+        setDiceRolling(false);
+        onRollDice(latestDiceValues); // Pass the final dice values
+      }
     }, 100);
-    
-    setTimeout(() => {
-      clearInterval(rollInterval);
-      setDiceRolling(false);
-      onRollDice();
-    }, 1000);
   };
   
   return (

@@ -11,12 +11,8 @@ const BOT_DECISION_DELAY = 1500; // Bot thinking time in ms
 const BOT_PROPERTY_BUY_CHANCE = 0.7; // 70% chance to buy properties
 
 // Define specific types for event payloads
-interface DiceRolledPayload {
-  playerId: string;
-  dice: [number, number];
-  newPosition: number;
-}
-
+// Note: We are moving away from specific event types like DiceRolledPayload for client actions
+// and relying on validating the broadcasted GameState.
 interface EndTurnPayload {
   playerId: string;
 }
@@ -36,7 +32,7 @@ export const useGame = () => {
   const [isCreator, setIsCreator] = useState(false);
   const { toast } = useToast();
 
-  // Ref for checking state within useEffect timeout
+  // Ref for checking state within useEffect timeout and for comparison in handlers
   const gameStateRef = useRef(gameState);
   useEffect(() => {
       gameStateRef.current = gameState;
@@ -67,7 +63,7 @@ export const useGame = () => {
     const peerId = await initializePeer(name);
     if (!peerId) return;
     
-    setGameState({
+    const initialState: GameState = { // Define type explicitly
       id: peerId,
       players: [{
         id: peerId,
@@ -88,7 +84,9 @@ export const useGame = () => {
       maxPlayers: players,
       isCreator: true,
       hasDiceRolled: false
-    });
+    };
+    setGameState(initialState);
+    gameStateRef.current = initialState; // Initialize ref
     
     PeerService.on('peer-disconnected', (data: { peerId: string }) => { // Added type
       console.log('Player disconnected:', data.peerId);
@@ -110,6 +108,7 @@ export const useGame = () => {
         let nextPlayerIndex = prevState.currentPlayer;
         let needsTurnReset = false;
 
+        // Adjust currentPlayer index if the disconnected player affects the turn order
         if (prevState.players[prevState.currentPlayer]?.id === data.peerId) {
            // If the disconnected player was current, move to the "next" player in the reduced list
            nextPlayerIndex = prevState.currentPlayer % remainingPlayers.length;
@@ -119,16 +118,19 @@ export const useGame = () => {
            nextPlayerIndex = prevState.currentPlayer - 1;
         }
         // Ensure index is valid after potential adjustments
-        nextPlayerIndex = nextPlayerIndex % remainingPlayers.length;
+        nextPlayerIndex = Math.max(0, nextPlayerIndex % remainingPlayers.length);
 
 
-        return {
+        const newState = {
           ...prevState,
           players: remainingPlayers,
           currentPlayer: nextPlayerIndex,
           // Reset hasDiceRolled only if the turn was forced to change
           hasDiceRolled: needsTurnReset ? false : prevState.hasDiceRolled,
         };
+        // Broadcast the updated state immediately after a disconnect adjustment
+        PeerService.sendToAll({ type: 'game-state', payload: newState });
+        return newState;
       });
       
       toast({
@@ -162,7 +164,7 @@ export const useGame = () => {
     });
     
     return peerId;
-  }, [initializePeer, toast]); // Removed gameState dependency
+  }, [initializePeer, toast]);
 
   const joinGame = useCallback(async (name: string, hostId: string) => {
     setPlayerName(name);
@@ -183,8 +185,9 @@ export const useGame = () => {
         }
       });
       
+      // Client listens for game state updates from the creator
       PeerService.on('game-state', (state: GameState) => { // Added type
-        console.log('Received game state:', state);
+        console.log('Client received game state:', state);
         // Ensure properties have owner field if missing from host state
         const propertiesWithOwner = state.properties.map(p => ({ ...p, owner: p.owner || null }));
         setGameState(prevState => ({
@@ -194,6 +197,7 @@ export const useGame = () => {
         }));
       });
       
+      // Client listens for the start-game signal (though full state is also sent)
       PeerService.on('start-game', () => {
         setGameState(prevState => {
           if (!prevState) return null;
@@ -217,7 +221,8 @@ export const useGame = () => {
   }, [initializePeer, toast]);
 
   const startGame = useCallback(() => {
-    if (!gameState || !isCreator) return;
+    const currentCreatorState = gameStateRef.current; // Use ref
+    if (!currentCreatorState || !isCreator) return;
     
     const humanPlayers = [
       {
@@ -260,15 +265,15 @@ export const useGame = () => {
     const players = [...humanPlayers, ...botPlayers];
     
     const updatedState: GameState = {
-      ...gameState,
+      ...currentCreatorState,
       players,
       gameStarted: true,
       currentPlayer: 0, // Start with player 0
       hasDiceRolled: false,
-      properties: gameState.properties.map(p => ({ ...p, owner: null })) // Reset owners on start
+      properties: currentCreatorState.properties.map(p => ({ ...p, owner: null })) // Reset owners on start
     };
     
-    setGameState(updatedState);
+    setGameState(updatedState); // Update creator's state
     
     // Send full state to everyone on start
     PeerService.sendToAll({
@@ -287,19 +292,22 @@ export const useGame = () => {
       description: `Game started with ${players.length} players`
     });
 
-    // DO NOT trigger bot turn here - the useEffect hook watching currentPlayer will handle it.
+    // Bot turn logic is handled by the useEffect hook watching gameState
 
-  }, [gameState, isCreator, connections, maxPlayers, playerName, toast]);
+  }, [isCreator, connections, maxPlayers, playerName, toast]); // Removed gameState dependency, use ref
 
-  const rollDice = useCallback(() => {
+  // --- rollDice (Client Action) ---
+  // Modified to accept dice values from the component
+  const rollDice = useCallback((dice: [number, number]) => { 
     const currentState = gameStateRef.current; // Use ref for immediate access
     if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
     
     const currentPlayerIndex = currentState.currentPlayer;
     const currentPlayer = currentState.players[currentPlayerIndex];
     
+    // Check if it's the current human player's turn
     const isMyTurn = currentPlayer.type === 'human' && currentPlayer.id === PeerService.getCurrentPeerId();
-    
+
     if (!isMyTurn) {
       console.log("Not your turn to roll dice.");
       toast({ title: "Wait!", description: "It's not your turn.", variant: "destructive" });
@@ -312,31 +320,36 @@ export const useGame = () => {
       return;
     }
     
-    const dice1 = Math.floor(Math.random() * 6) + 1;
-    const dice2 = Math.floor(Math.random() * 6) + 1;
+    // Use the dice values passed from the component
+    const [dice1, dice2] = dice;
     const diceSum = dice1 + dice2;
+    console.log('dice: ', dice);
+    console.log('dice sum: ', diceSum);
     
+    
+    // --- Client calculates its *intended* new state ---
     const updatedPlayers = [...currentState.players];
     const updatedPlayer = { ...currentPlayer };
-    
-    updatedPlayer.position = (updatedPlayer.position + diceSum) % 40; // Assuming 40 squares
+    updatedPlayer.position = (updatedPlayer.position + diceSum) % 40; // Calculate new position
     updatedPlayers[currentPlayerIndex] = updatedPlayer;
     
-    const updatedState: GameState = {
+    const clientUpdatedState: GameState = {
       ...currentState,
       players: updatedPlayers,
-      dice: [dice1, dice2],
+      dice: [dice1, dice2], // Use the passed-in dice roll results
       hasDiceRolled: true // Mark dice as rolled for this turn
     };
     
-    setGameState(updatedState); // Update local state
+    // --- Client updates its own state immediately (Optimistic Update) ---
+    setGameState(clientUpdatedState);
     
-    // Send the updated state to all players
+    // --- Client broadcasts its calculated state to everyone (including creator) ---
     PeerService.sendToAll({
       type: 'game-state',
-      payload: updatedState
+      payload: clientUpdatedState
     });
 
+    // Local toast for the player who rolled
     toast({
       title: "You rolled!",
       description: `You rolled ${dice1} + ${dice2} = ${diceSum}`
@@ -344,6 +357,7 @@ export const useGame = () => {
 
   }, [toast]); // Dependencies: toast. gameState is accessed via ref.
 
+  // --- endTurn (Client Action) ---
   const endTurn = useCallback(() => {
     const currentState = gameStateRef.current; // Use ref
     if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
@@ -351,6 +365,7 @@ export const useGame = () => {
     const currentPlayerIndex = currentState.currentPlayer;
     const currentPlayer = currentState.players[currentPlayerIndex];
 
+    // Check if it's the current human player's turn
     const isMyTurn = currentPlayer.type === 'human' && currentPlayer.id === PeerService.getCurrentPeerId();
 
     if (!isMyTurn) {
@@ -365,26 +380,30 @@ export const useGame = () => {
       return;
     }
     
+    // Calculate the next player index
     const nextPlayerIndex = (currentPlayerIndex + 1) % currentState.players.length;
     
-    const updatedState: GameState = {
+    // Create the state representing the end of the turn
+    const endTurnState: GameState = {
       ...currentState,
       currentPlayer: nextPlayerIndex,
       hasDiceRolled: false // Reset for the next player
     };
     
-    setGameState(updatedState); // Update local state
+    // Client updates its own state immediately
+    setGameState(endTurnState);
     
-    // Send the updated state to all players
+    // Client broadcasts the end-of-turn state to everyone
     PeerService.sendToAll({
       type: 'game-state',
-      payload: updatedState
+      payload: endTurnState
     });
 
-    // DO NOT trigger bot turn here - the useEffect hook watching currentPlayer will handle it.
+    // Bot turn logic is handled by the useEffect hook watching gameState on the creator side
 
   }, [toast]); // Dependencies: toast. gameState is accessed via ref.
 
+  // --- buyProperty (Client Action) ---
   const buyProperty = useCallback(() => {
     const currentState = gameStateRef.current; // Use ref
     if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
@@ -392,6 +411,7 @@ export const useGame = () => {
     const currentPlayerIndex = currentState.currentPlayer;
     const currentPlayer = currentState.players[currentPlayerIndex];
 
+    // Check if it's the current human player's turn
     const isMyTurn = currentPlayer.type === 'human' && currentPlayer.id === PeerService.getCurrentPeerId();
     
     if (!isMyTurn) {
@@ -414,6 +434,7 @@ export const useGame = () => {
     
     const property = currentState.properties[propertyIndex];
     
+    // --- Perform checks based on current state ---
     if (property.owner) {
         console.log("Property already owned.");
         const ownerName = currentState.players.find(p => p.id === property.owner)?.name || 'someone';
@@ -427,7 +448,7 @@ export const useGame = () => {
         return;
     }
     
-    // Proceed with purchase
+    // --- Client calculates the new state after purchase ---
     const updatedPlayers = [...currentState.players];
     updatedPlayers[currentPlayerIndex] = { 
       ...currentPlayer,
@@ -438,16 +459,19 @@ export const useGame = () => {
     const updatedProperties = [...currentState.properties];
     updatedProperties[propertyIndex] = { ...property, owner: currentPlayer.id };
     
-    const updatedState: GameState = {
+    const purchasedState: GameState = {
       ...currentState,
       players: updatedPlayers,
       properties: updatedProperties
     };
     
-    setGameState(updatedState); // Update local state
+    // Client updates its own state immediately
+    setGameState(purchasedState);
     
-    PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+    // Client broadcasts the purchase state to everyone
+    PeerService.sendToAll({ type: 'game-state', payload: purchasedState });
     
+    // Local toast
     toast({
       title: "Property Purchased!",
       description: `You bought ${property.name} for $${property.price}`
@@ -455,7 +479,7 @@ export const useGame = () => {
 
   }, [toast]); // Dependencies: toast. gameState is accessed via ref.
 
-  // handleBotTurn now only takes the index and relies on gameStateRef for current state
+  // --- handleBotTurn (Creator Only Logic) ---
   const handleBotTurn = useCallback((botPlayerIndex: number) => {
     if (!isCreator) return;
 
@@ -476,7 +500,7 @@ export const useGame = () => {
 
       // --- Step 1: Roll Dice ---
       await new Promise(resolve => setTimeout(resolve, BOT_DECISION_DELAY));
-      currentLoopState = getCurrentGameState(); // Refresh state
+      currentLoopState = getCurrentGameState(); // Refresh state before action
       if (!currentLoopState || currentLoopState.currentPlayer !== botPlayerIndex || currentLoopState.hasDiceRolled) {
          console.log(`Bot turn ${botPlayer.name} aborted (before roll processing).`); return;
       }
@@ -486,27 +510,28 @@ export const useGame = () => {
       const newPosition = (botPlayer.position + diceSum) % 40;
       const playersAfterRoll = [...currentLoopState.players];
       playersAfterRoll[botPlayerIndex] = { ...botPlayer, position: newPosition };
-      const stateAfterRoll: GameState = { // Changed let to const
+      const stateAfterRoll: GameState = {
         ...currentLoopState,
         players: playersAfterRoll,
         dice: [dice1, dice2],
         hasDiceRolled: true
       };
-      setGameState(stateAfterRoll);
-      PeerService.sendToAll({ type: 'game-state', payload: stateAfterRoll });
+      setGameState(stateAfterRoll); // Creator updates state
+      PeerService.sendToAll({ type: 'game-state', payload: stateAfterRoll }); // Creator broadcasts
       toast({ title: "Bot Roll", description: `${botPlayer.name} rolled ${dice1} + ${dice2} = ${diceSum}` });
       console.log(`Bot ${botPlayer.name} rolled ${diceSum}, moved to ${newPosition}`);
 
       // --- Step 2: Action (e.g., Buy Property) ---
       await new Promise(resolve => setTimeout(resolve, BOT_DECISION_DELAY));
-      currentLoopState = getCurrentGameState(); // Refresh state
+      currentLoopState = getCurrentGameState(); // Refresh state before action
       if (!currentLoopState || currentLoopState.currentPlayer !== botPlayerIndex) {
          console.log(`Bot turn ${botPlayer.name} aborted (before action).`); return;
       }
-      const botPlayerAfterRoll = currentLoopState.players[botPlayerIndex];
+      const botPlayerAfterRoll = currentLoopState.players[botPlayerIndex]; // Get potentially updated bot player state
       const propertyAtPosition = currentLoopState.properties.find(p => p.position === botPlayerAfterRoll.position);
-      let stateAfterAction = currentLoopState;
+      let stateAfterAction = currentLoopState; // Start with the state after rolling
       let didBotBuyProperty = false;
+
       if (propertyAtPosition && !propertyAtPosition.owner && botPlayerAfterRoll.money >= propertyAtPosition.price) {
         const willBuy = Math.random() <= BOT_PROPERTY_BUY_CHANCE;
         if (willBuy) {
@@ -520,13 +545,13 @@ export const useGame = () => {
              };
              const propertiesAfterBuy = [...currentLoopState.properties];
              propertiesAfterBuy[propertyIndex] = { ...propertyAtPosition, owner: botPlayerAfterRoll.id };
-             stateAfterAction = {
-               ...currentLoopState,
+             stateAfterAction = { // Update stateAfterAction
+               ...currentLoopState, // Build upon state after roll
                players: playersAfterBuy,
                properties: propertiesAfterBuy
              };
-             setGameState(stateAfterAction);
-             PeerService.sendToAll({ type: 'game-state', payload: stateAfterAction });
+             setGameState(stateAfterAction); // Creator updates state
+             PeerService.sendToAll({ type: 'game-state', payload: stateAfterAction }); // Creator broadcasts
              toast({ title: "Bot Purchase", description: `${botPlayerAfterRoll.name} bought ${propertyAtPosition.name}` });
              console.log(`Bot ${botPlayer.name} bought ${propertyAtPosition.name}`);
              didBotBuyProperty = true;
@@ -542,18 +567,18 @@ export const useGame = () => {
 
       // --- Step 3: End Turn ---
       await new Promise(resolve => setTimeout(resolve, didBotBuyProperty ? BOT_DECISION_DELAY : 800));
-      currentLoopState = getCurrentGameState(); // Refresh state
+      currentLoopState = getCurrentGameState(); // Refresh state before ending turn
       if (!currentLoopState || currentLoopState.currentPlayer !== botPlayerIndex) {
          console.log(`Bot turn ${botPlayer.name} aborted (before end turn).`); return;
       }
       const nextPlayerIndex = (botPlayerIndex + 1) % currentLoopState.players.length;
       const finalStateForTurn: GameState = {
-        ...stateAfterAction,
+        ...currentLoopState, // Build upon the state after potential action
         currentPlayer: nextPlayerIndex,
         hasDiceRolled: false
       };
-      setGameState(finalStateForTurn);
-      PeerService.sendToAll({ type: 'game-state', payload: finalStateForTurn });
+      setGameState(finalStateForTurn); // Creator updates state
+      PeerService.sendToAll({ type: 'game-state', payload: finalStateForTurn }); // Creator broadcasts
       toast({ title: "Bot Turn End", description: `${botPlayer.name} ended their turn.` });
       console.log(`Bot ${botPlayer.name} ended turn. Next player: ${nextPlayerIndex}`);
 
@@ -564,6 +589,7 @@ export const useGame = () => {
     executeBotTurn().catch(err => {
        console.error(`Error during bot ${botPlayerIndex} turn:`, err);
        toast({ title: "Bot Error", description: `Error during ${gameStateRef.current?.players[botPlayerIndex]?.name}'s turn.`, variant: "destructive" });
+       // Attempt to recover by ending the turn forcefully
        const currentState = getCurrentGameState();
        if (currentState && currentState.currentPlayer === botPlayerIndex) {
            const nextPlayerIndex = (botPlayerIndex + 1) % currentState.players.length;
@@ -575,122 +601,158 @@ export const useGame = () => {
     });
   }, [isCreator, toast]); // Dependencies: isCreator, toast. gameState is accessed via ref.
 
-  // Effect for Creator to handle events from clients
+  // --- Effect for Creator to handle incoming GameState updates (Validation) ---
   useEffect(() => {
-    if (!isCreator) return;
+    if (!isCreator) return; // Only creator validates and corrects state
 
-    const handleDiceRolled = (data: DiceRolledPayload) => {
-      setGameState(prevState => {
-        if (!prevState || prevState.gameOver || !prevState.gameStarted ||
-            prevState.players[prevState.currentPlayer]?.id !== data.playerId ||
-            prevState.players[prevState.currentPlayer]?.type !== 'human' ||
-            prevState.hasDiceRolled) {
-            console.warn("Invalid dice roll event received.", data.playerId, prevState?.currentPlayer, prevState?.hasDiceRolled);
-            return prevState;
-        }
-        const playerIndex = prevState.currentPlayer;
-        const updatedPlayers = [...prevState.players];
-        updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], position: data.newPosition };
-        const updatedState: GameState = { ...prevState, players: updatedPlayers, dice: data.dice, hasDiceRolled: true };
-        PeerService.sendToAll({ type: 'game-state', payload: updatedState });
-        return updatedState;
-      });
-    };
-      
-    const handleEndTurn = (data: EndTurnPayload) => {
-       setGameState(prevState => {
-         if (!prevState || prevState.gameOver || !prevState.gameStarted ||
-             prevState.players[prevState.currentPlayer]?.id !== data.playerId ||
-             prevState.players[prevState.currentPlayer]?.type !== 'human' ||
-             !prevState.hasDiceRolled) {
-             console.warn("Invalid end turn event received.", data.playerId, prevState?.currentPlayer, prevState?.hasDiceRolled);
-             return prevState;
-         }
-         const nextPlayerIndex = (prevState.currentPlayer + 1) % prevState.players.length;
-         const updatedState: GameState = { ...prevState, currentPlayer: nextPlayerIndex, hasDiceRolled: false };
-         PeerService.sendToAll({ type: 'game-state', payload: updatedState });
-         // DO NOT trigger bot turn here. useEffect handles it.
-         return updatedState;
-       });
-    };
-      
-    const handleBuyProperty = (data: BuyPropertyPayload) => {
-       setGameState(prevState => {
-          if (!prevState || prevState.gameOver || !prevState.gameStarted ||
-             prevState.players[prevState.currentPlayer]?.id !== data.playerId ||
-             prevState.players[prevState.currentPlayer]?.type !== 'human') {
-             console.warn("Invalid buy property event (player/type).", data.playerId); return prevState;
-         }
-         const playerIndex = prevState.currentPlayer;
-         const player = prevState.players[playerIndex];
-         const propertyIndex = prevState.properties.findIndex(p => p.id === data.propertyId);
-         if (propertyIndex === -1) { console.warn("Invalid buy property event (id).", data.propertyId); return prevState; }
-         const property = prevState.properties[propertyIndex];
-          if (property.owner || player.money < property.price || property.position !== player.position) {
-             console.warn("Invalid buy property event (owned/funds/pos).", property.owner, player.money, property.position, player.position); return prevState;
-         }
-         const updatedPlayers = [...prevState.players];
-         updatedPlayers[playerIndex] = { ...player, money: player.money - property.price, properties: [...player.properties, data.propertyId] };
-         const updatedProperties = [...prevState.properties];
-         updatedProperties[propertyIndex] = { ...property, owner: data.playerId };
-         const updatedState: GameState = { ...prevState, players: updatedPlayers, properties: updatedProperties };
-         PeerService.sendToAll({ type: 'game-state', payload: updatedState });
-         toast({
-           title: "Property Purchased",
-           description: `${player.name} bought ${property.name} for $${property.price}`
-         });
-         return updatedState;
-       });
-    };
+    const handleGameStateUpdate = (receivedState: GameState) => {
+      console.log('[Creator] Received game state update:', receivedState);
+      const creatorState = gameStateRef.current; // Get creator's current authoritative state
 
-    PeerService.on('dice-rolled', handleDiceRolled);
-    PeerService.on('end-turn', handleEndTurn);
-    PeerService.on('buy-property', handleBuyProperty);
-      
-    return () => {
-      PeerService.off('dice-rolled', handleDiceRolled);
-      PeerService.off('end-turn', handleEndTurn);
-      PeerService.off('buy-property', handleBuyProperty);
-    };
-  }, [isCreator, toast]); // Dependencies: isCreator, toast. gameState is accessed via ref.
+      if (!creatorState || creatorState.gameOver) {
+        console.log('[Creator] Ignoring update, game over or no state.');
+        return; // Ignore if game is over or creator has no state
+      }
 
-  // Effect for Creator to listen for general state updates from clients
-  useEffect(() => {
-    if (!isCreator) return; // Only creator needs this generic listener
-
-    const handleGameStateUpdate = (state: GameState) => {
-      console.log('Creator received game state update:', state);
       // Basic validation: Ensure the received state ID matches the game ID
-      if (state.id !== gameId) {
-        console.warn("Received game state with mismatched ID. Ignoring.");
+      if (receivedState.id !== gameId) {
+        console.warn("[Creator] Received game state with mismatched ID. Ignoring.");
         return;
       }
-      // More robust validation could be added here (e.g., sequence numbers)
 
-      // Ensure properties have owner field if missing
-      const propertiesWithOwner = state.properties.map(p => ({ ...p, owner: p.owner || null }));
+      // --- State Correction Logic ---
+      let correctedState = { ...receivedState }; // Start with received state
+      let needsCorrectionBroadcast = false;
 
-      // Update the creator's state. This will trigger other effects (like the bot turn effect).
-      setGameState(prevState => ({
-        ...state,
-        properties: propertiesWithOwner,
-        isCreator: true // Ensure creator status is maintained
-      }));
+      // ** Dice Roll Validation **
+      // Check if this update represents a dice roll completion by the current player
+      const prevPlayerState = creatorState.players[creatorState.currentPlayer];
+      const receivedPlayerState = receivedState.players[receivedState.currentPlayer];
+
+      // Ensure dice values are valid numbers before summing
+      const receivedDice = receivedState.dice;
+      if (!Array.isArray(receivedDice) || receivedDice.length !== 2 || typeof receivedDice[0] !== 'number' || typeof receivedDice[1] !== 'number') {
+          console.warn('[Creator] Received invalid dice values in game state update. Ignoring roll validation.', receivedDice);
+      } else if (prevPlayerState && receivedPlayerState && // Ensure players exist
+          receivedState.currentPlayer === creatorState.currentPlayer && // Still the same player's turn
+          receivedPlayerState.id === prevPlayerState.id && // Correct player ID
+          !creatorState.hasDiceRolled && receivedState.hasDiceRolled // Roll just happened
+         )
+      {
+          console.log(`[Creator] Detected dice roll completion for player ${receivedPlayerState.name}`);
+          // Validate the position based on creator's state + received dice
+          const diceSum = receivedDice[0] + receivedDice[1];
+          const correctNewPosition = (prevPlayerState.position + diceSum) % 40;
+
+          if (receivedPlayerState.position !== correctNewPosition) {
+              console.warn(`[Creator] Correcting player position! Client sent ${receivedPlayerState.position}, calculated ${correctNewPosition}`);
+              
+              // Create a corrected version of the players array
+              const correctedPlayers = [...receivedState.players];
+              correctedPlayers[receivedState.currentPlayer] = {
+                  ...receivedPlayerState,
+                  position: correctNewPosition // Use the creator's calculated position
+              };
+              
+              // Update the correctedState object
+              correctedState = {
+                  ...correctedState,
+                  players: correctedPlayers
+              };
+              needsCorrectionBroadcast = true;
+          } else {
+              console.log(`[Creator] Player position matches calculated position (${correctNewPosition}).`);
+          }
+      }
+
+      // ** End Turn Validation **
+      // Check if this update represents an end turn
+      if (receivedState.currentPlayer !== creatorState.currentPlayer && // Current player changed
+          !receivedState.hasDiceRolled // hasDiceRolled should be false for the new player
+         )
+      {
+          console.log(`[Creator] Detected end turn. New player: ${receivedState.currentPlayer}`);
+          // Basic validation: Ensure the next player index is logical
+          const expectedNextPlayer = (creatorState.currentPlayer + 1) % creatorState.players.length;
+          if (receivedState.currentPlayer !== expectedNextPlayer) {
+              console.warn(`[Creator] Correcting currentPlayer index! Client sent ${receivedState.currentPlayer}, expected ${expectedNextPlayer}`);
+              correctedState = {
+                  ...correctedState,
+                  currentPlayer: expectedNextPlayer,
+                  hasDiceRolled: false // Ensure reset
+              };
+              needsCorrectionBroadcast = true;
+          }
+      }
+      
+      // ** Buy Property Validation ** (Simplified - more checks could be added)
+      // Find if a property owner changed compared to creator's state
+      for (let i = 0; i < receivedState.properties.length; i++) {
+          const receivedProp = receivedState.properties[i];
+          const creatorProp = creatorState.properties.find(p => p.id === receivedProp.id);
+          if (creatorProp && receivedProp.owner && receivedProp.owner !== creatorProp.owner) {
+              console.log(`[Creator] Detected property purchase: ${receivedProp.name} by ${receivedProp.owner}`);
+              // Find the buyer in the received state
+              const buyerIndex = receivedState.players.findIndex(p => p.id === receivedProp.owner);
+              const buyer = buyerIndex !== -1 ? receivedState.players[buyerIndex] : null;
+              
+              // Find the buyer in the creator's state *before* the purchase
+              const creatorBuyerBeforePurchase = creatorState.players.find(p => p.id === receivedProp.owner);
+
+              if (buyer && creatorBuyerBeforePurchase && creatorProp.price) {
+                  const expectedMoneyAfterPurchase = creatorBuyerBeforePurchase.money - creatorProp.price;
+                  if (buyer.money !== expectedMoneyAfterPurchase) {
+                      console.warn(`[Creator] Correcting buyer money! Client sent ${buyer.money}, expected ${expectedMoneyAfterPurchase}`);
+                      
+                      const correctedPlayers = [...correctedState.players]; // Use players from potentially already corrected state
+                      correctedPlayers[buyerIndex] = { ...buyer, money: expectedMoneyAfterPurchase };
+                      
+                      correctedState = { ...correctedState, players: correctedPlayers };
+                      needsCorrectionBroadcast = true;
+                  }
+                  // Could add checks: was it the buyer's turn? Was the property actually unowned? etc.
+              } else {
+                  console.warn(`[Creator] Could not fully validate property purchase for ${receivedProp.name}. Buyer or price info missing.`);
+              }
+              // Assume only one property purchase per state update for simplicity
+              break; 
+          }
+      }
+
+
+      // --- Update Creator's State and Broadcast if Necessary ---
+      // Ensure properties have owner field if missing (belt-and-suspenders)
+      const propertiesWithOwner = correctedState.properties.map(p => ({ ...p, owner: p.owner || null }));
+      const finalCorrectedState = {
+          ...correctedState,
+          properties: propertiesWithOwner,
+          isCreator: true // Ensure creator status is maintained
+      };
+
+      // Update the creator's state regardless (to stay in sync or apply corrections)
+      setGameState(finalCorrectedState);
+
+      // If a correction was made, broadcast the authoritative state back to everyone
+      if (needsCorrectionBroadcast) {
+          console.log('[Creator] Broadcasting corrected state:', finalCorrectedState);
+          PeerService.sendToAll({ type: 'game-state', payload: finalCorrectedState });
+      }
     };
 
+    // Register the handler
     PeerService.on('game-state', handleGameStateUpdate);
 
+    // Cleanup
     return () => {
       PeerService.off('game-state', handleGameStateUpdate);
     };
-    // Depend on gameId to ensure the correct ID is used in validation
-  }, [isCreator, gameId]);
+  }, [isCreator, gameId, toast]); // Dependencies
 
 
-  // THIS useEffect is responsible for triggering bot turns
+  // --- Effect for Creator to Trigger Bot Turns ---
   useEffect(() => {
     // Log dependencies every time this effect runs
-    console.log(`Bot Turn useEffect Check: isCreator=${isCreator}, gameStarted=${gameState?.gameStarted}, gameOver=${gameState?.gameOver}, currentPlayer=${gameState?.currentPlayer}, playerType=${gameState?.players[gameState?.currentPlayer ?? -1]?.type}`);
+    // console.log(`Bot Turn useEffect Check: isCreator=${isCreator}, gameStarted=${gameState?.gameStarted}, gameOver=${gameState?.gameOver}, currentPlayer=${gameState?.currentPlayer}, playerType=${gameState?.players[gameState?.currentPlayer ?? -1]?.type}`);
 
     // Check if creator, game started, not over, and current player exists and is a bot
     if (isCreator && gameState?.gameStarted && !gameState.gameOver && gameState.players && gameState.currentPlayer < gameState.players.length) {
@@ -710,23 +772,12 @@ export const useGame = () => {
             } else {
                  console.log(`Bot turn trigger for index ${currentPlayerIndex} aborted (state changed during timeout). Current player: ${latestState?.currentPlayer}, Expected bot type: ${latestState?.players[currentPlayerIndex]?.type}`);
             }
-        }, 150); // 150ms delay - slightly longer to be safer
+        }, 200); // Slightly increased delay
 
         // Cleanup function for the timeout
         return () => clearTimeout(timeoutId);
-      } else {
-         // Log if the current player is not a bot when the effect runs
-         if (currentPlayer) { // Check if currentPlayer exists before logging type
-            console.log(`Bot Turn useEffect Check: Current player ${currentPlayerIndex} is type ${currentPlayer.type}, not triggering bot turn.`);
-         } else {
-            console.log(`Bot Turn useEffect Check: Current player ${currentPlayerIndex} not found.`);
-         }
       }
-    } else {
-        // Log why the main condition failed
-        console.log(`Bot Turn useEffect Check: Main condition failed (isCreator=${isCreator}, gameStarted=${gameState?.gameStarted}, gameOver=${gameState?.gameOver}, playersExist=${!!gameState?.players}, indexValid=${gameState ? gameState.currentPlayer < (gameState.players?.length ?? 0) : 'N/A'})`);
     }
-    // Using gameState directly as a dependency might help catch nested changes more reliably
   }, [gameState, isCreator, handleBotTurn]); // Adjusted dependencies
 
 
@@ -747,7 +798,7 @@ export const useGame = () => {
     createGame,
     joinGame,
     startGame,
-    rollDice,
+    rollDice, // Now accepts dice argument
     endTurn,
     buyProperty
   };
