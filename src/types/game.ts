@@ -79,11 +79,18 @@ export interface Connection {
   name: string;
 }
 
+export interface NotificationState {
+  title: string;
+  description: string;
+  variant?: 'default' | 'destructive';
+}
+
 export type GameEventPayload = 
   | { type: 'join-game'; name: string }
   | { type: 'game-state'; state: GameState }
   | { type: 'start-game' }
-  | { type: 'peer-disconnected'; peerId: string };
+  | { type: 'peer-disconnected'; peerId: string }
+  | { type: 'notify-users'; state: NotificationState };
 
 export interface GameEvent<T extends GameEventPayload = GameEventPayload> {
   type: T['type'];

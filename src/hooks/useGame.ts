@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Player, GameState, GameEvent, Connection, Property } from '../types/game';
+import { Player, GameState, GameEvent, Connection, Property, NotificationState } from '../types/game';
 import PeerService from '../services/PeerService';
 import { dominicanProperties } from '../data/dominican-properties';
 import { useToast } from '@/components/ui/use-toast';
@@ -221,6 +221,16 @@ export const useGame = () => {
           properties: propertiesWithOwner,
           isCreator: false // Ensure client knows they are not creator
         }));
+      });
+
+      PeerService.on('notify-users', (state: NotificationState) => { // Added type
+        console.log('Client received notification:', state);
+        // Ensure properties have owner field if missing from host state
+        toast({
+          title: state.title,
+          description: state.description,
+          variant: state.variant
+        });
       });
       
       // Client listens for the start-game signal (though full state is also sent)
@@ -497,6 +507,15 @@ export const useGame = () => {
     // Client broadcasts the purchase state to everyone
     PeerService.sendToAll({ type: 'game-state', payload: purchasedState });
     
+    // Send notification to all peers
+    PeerService.sendToAll({
+      type: 'notify-users',
+      payload: {
+        title: "Property Purchased",
+        description: `${currentPlayer.name} bought ${property.name} for $${property.price}`
+      }
+    });
+
     // Local toast
     toast({
       title: "Property Purchased!",
@@ -911,6 +930,13 @@ export const useGame = () => {
 
     setGameState(updatedState);
     PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+    PeerService.sendToAll({
+      type: 'notify-users',
+      payload: {
+        title: "Player Moved",
+        description: `${updatedPlayers[playerIndex].name} moved to position ${newPosition}`
+      }
+    });
   }, []);
 
   const onUpdateMoney = useCallback((playerId: string, amount: number) => {
