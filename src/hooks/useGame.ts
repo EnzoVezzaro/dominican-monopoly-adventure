@@ -563,7 +563,15 @@ export const useGame = () => {
       };
       setGameState(stateAfterRoll); // Creator updates state
       PeerService.sendToAll({ type: 'game-state', payload: stateAfterRoll }); // Creator broadcasts
-      toast({ title: "Bot Roll", description: `${botPlayer.name} rolled ${dice1} + ${dice2} = ${diceSum}` });
+      const rollMessage = `${botPlayer.name} rolled ${dice1} + ${dice2} = ${diceSum}`;
+      toast({ title: "Bot Roll", description: rollMessage });
+      PeerService.sendToAll({
+        type: 'notify-users',
+        payload: {
+          title: "Bot Roll",
+          description: rollMessage
+        }
+      });
       console.log(`Bot ${botPlayer.name} rolled ${diceSum}, moved to ${newPosition}`);
 
       // --- Step 2: Action (e.g., Buy Property) ---
