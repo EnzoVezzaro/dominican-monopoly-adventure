@@ -10,6 +10,7 @@ import { GameState, Player, Property } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
 import PeerService from '@/services/PeerService';
 import PropertyActionCard from './PropertyActionCard';
+import { getPropertyColor } from '@/lib/colors';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -59,7 +60,7 @@ const Board = ({
     else { x = 5; z = -5 + (i - 30) * spaceSize; }
     
     const property = properties.find(p => p.position === i);
-    const color = property ? property.color : '#cccccc';
+    const color = getPropertyColor(property);
     
     boardSpaces.push(
       <group 

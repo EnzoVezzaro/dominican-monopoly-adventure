@@ -5,6 +5,7 @@ import { CircleDollarSign, Home, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Player, Property } from '@/types/game';
 import PropertyActionCard from './PropertyActionCard';
+import { getPropertyColor } from '@/lib/colors';
 
 interface PlayerInfoProps {
   player: Player;
@@ -45,13 +46,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn, properti
                       <div 
                         className="w-4 h-4 rounded-full border border-gray-300 cursor-pointer hover:opacity-80"
                         style={{ 
-                          backgroundColor: propertyId.includes('railroad') 
-                            ? '#000' 
-                            : propertyId.includes('utility')
-                            ? '#aaa'
-                            : propertyId.split('-')[0] === 'property' 
-                            ? `${player.color}` 
-                            : '#ccc'
+                          backgroundColor: getPropertyColor(property)
                         }}
                         onClick={() => property && setSelectedProperty(property)}
                       ></div>

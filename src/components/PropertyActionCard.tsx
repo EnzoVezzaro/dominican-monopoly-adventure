@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Property } from '@/types/game';
 import { X, CircleDollarSign, Home } from 'lucide-react';
+import { getPropertyColor } from '@/lib/colors';
 
 interface PropertyActionCardProps {
   property: Property;
@@ -84,7 +85,7 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
               <CardTitle className="text-xl">{property.name}</CardTitle>
               <div
                 className="w-6 h-6 rounded-sm border border-gray-400"
-                style={{ backgroundColor: property.color }}
+                style={{ backgroundColor: getPropertyColor(property) }}
               ></div>
             </div>
           </CardHeader>
