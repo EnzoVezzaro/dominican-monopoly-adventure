@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, useTexture } from '@react-three/drei';
@@ -6,7 +5,7 @@ import * as THREE from 'three';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dice, CircleDollarSign, Home } from 'lucide-react';
+import { Dices, CircleDollarSign, Home } from 'lucide-react';
 import { GameState, Player } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
 
@@ -17,7 +16,6 @@ interface GameBoardProps {
   onBuyProperty: () => void;
 }
 
-// 3D Board Component
 const Board = ({ properties, players, currentPlayer }: { 
   properties: GameState['properties'], 
   players: Player[],
@@ -26,17 +24,14 @@ const Board = ({ properties, players, currentPlayer }: {
   const boardRef = useRef<THREE.Group>(null);
   const textureProps = useTexture('/board-texture.jpg');
   
-  // This is a placeholder, in a real implementation you'd have a proper texture
   const texture = new THREE.TextureLoader().load(
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
   );
   
-  // Create the 3D board with 40 spaces in a square
   const boardSpaces = [];
   const boardSize = 10;
   const spaceSize = 1;
   
-  // Create the 40 spaces around the board
   for (let i = 0; i < 40; i++) {
     let x = 0;
     let z = 0;
@@ -55,7 +50,6 @@ const Board = ({ properties, players, currentPlayer }: {
       z = -5 + (i - 30) * spaceSize;
     }
     
-    // Find property data for this position
     const property = properties.find(p => p.position === i);
     const color = property ? property.color : '#cccccc';
     
@@ -79,9 +73,7 @@ const Board = ({ properties, players, currentPlayer }: {
     );
   }
   
-  // Add player tokens on the board
   const playerTokens = players.map((player, index) => {
-    // Calculate position on the board based on player's position
     const position = player.position;
     let x = 0;
     let z = 0;
@@ -100,7 +92,6 @@ const Board = ({ properties, players, currentPlayer }: {
       z = -5 + (position - 30) * spaceSize;
     }
     
-    // Add a small offset so players don't overlap
     x += (index % 3) * 0.25 - 0.25;
     z += Math.floor(index / 3) * 0.25 - 0.25;
     
@@ -122,16 +113,13 @@ const Board = ({ properties, players, currentPlayer }: {
   
   return (
     <group ref={boardRef}>
-      {/* Board center */}
       <mesh position={[0, -0.1, 0]} receiveShadow>
         <boxGeometry args={[boardSize, 0.1, boardSize]} />
         <meshStandardMaterial color="#f0f0f0" map={texture} />
       </mesh>
       
-      {/* Board spaces */}
       {boardSpaces}
       
-      {/* Player tokens */}
       {playerTokens}
     </group>
   );
@@ -151,7 +139,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isCurrentPlayerTurn = gameState.isCreator && currentPlayerIndex === 0;
   
-  // Check if player can buy the property they're standing on
   useEffect(() => {
     if (currentPlayer) {
       const propertyAtPosition = gameState.properties.find(
@@ -169,7 +156,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const handleRollDice = () => {
     setDiceRolling(true);
     
-    // Animate dice roll
     const rollInterval = setInterval(() => {
       setDiceValues([
         Math.floor(Math.random() * 6) + 1,
@@ -177,7 +163,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
       ]);
     }, 100);
     
-    // Stop rolling after 1 second
     setTimeout(() => {
       clearInterval(rollInterval);
       setDiceRolling(false);
@@ -211,7 +196,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
           />
         </Canvas>
         
-        {/* Player list overlay */}
         <div className="absolute top-4 right-4 space-y-2 max-h-[80vh] overflow-y-auto">
           {gameState.players.map((player, index) => (
             <PlayerInfo 
@@ -222,7 +206,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
           ))}
         </div>
         
-        {/* Game controls overlay */}
         <div className="absolute bottom-4 left-4 flex gap-4">
           <Card className="w-fit shadow-lg">
             <CardContent className="p-4">
@@ -244,7 +227,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                     disabled={!isCurrentPlayerTurn || diceRolling}
                     className="bg-game-primary hover:bg-game-primary/90 flex items-center gap-2"
                   >
-                    <Dice size={16} />
+                    <Dices size={16} />
                     Roll Dice
                   </Button>
                   
@@ -277,7 +260,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
           )}
         </div>
         
-        {/* Current player badge */}
         <div className="absolute top-4 left-4">
           <Badge className="px-3 py-1 text-md bg-game-primary text-white">
             <div className="flex items-center gap-2">

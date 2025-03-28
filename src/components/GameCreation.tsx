@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Palm, Users, Link } from 'lucide-react';
+import { PalmTree, Users, Link } from 'lucide-react';
 
 interface GameCreationProps {
   onCreateGame: (playerName: string, maxPlayers: number) => void;
@@ -43,7 +42,7 @@ const GameCreation: React.FC<GameCreationProps> = ({ onCreateGame }) => {
       <Card className="w-full max-w-md shadow-lg border-2 border-game-primary">
         <CardHeader className="dominican-gradient text-white rounded-t-lg">
           <div className="flex items-center mb-2">
-            <Palm className="mr-2" size={28} />
+            <PalmTree className="mr-2" size={28} />
             <CardTitle className="text-2xl font-bold">Dominican Monopoly</CardTitle>
           </div>
           <CardDescription className="text-white opacity-90">
