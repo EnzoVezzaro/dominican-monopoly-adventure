@@ -1,14 +1,114 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import GameCreation from '@/components/GameCreation';
+import WaitingRoom from '@/components/WaitingRoom';
+import JoinGame from '@/components/JoinGame';
+import GameBoard from '@/components/GameBoard';
+import { useGame } from '@/hooks/useGame';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const { 
+    gameId,
+    playerName,
+    maxPlayers,
+    connections,
+    gameState,
+    isCreator,
+    createGame,
+    joinGame,
+    startGame,
+    rollDice,
+    endTurn,
+    buyProperty
+  } = useGame();
+  
+  const [view, setView] = useState<'create' | 'join' | 'waiting' | 'game'>('create');
+  const [joinGameId, setJoinGameId] = useState<string | null>(null);
+  const location = useLocation();
+  
+  // Check URL for game ID
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const gameParam = params.get('game');
+    
+    if (gameParam) {
+      setJoinGameId(gameParam);
+      setView('join');
+    }
+  }, [location.search]);
+  
+  // Handle game state changes
+  useEffect(() => {
+    if (gameState) {
+      if (gameState.gameStarted) {
+        setView('game');
+      } else {
+        setView('waiting');
+      }
+    }
+  }, [gameState]);
+  
+  const handleCreateGame = async (name: string, players: number) => {
+    const newGameId = await createGame(name, players);
+    if (newGameId) {
+      setView('waiting');
+    }
+  };
+  
+  const handleJoinGame = async (name: string, hostId: string) => {
+    const newGameId = await joinGame(name, hostId);
+    if (newGameId) {
+      setView('waiting');
+    }
+  };
+  
+  const handleStartGame = () => {
+    startGame();
+    setView('game');
+  };
+  
+  // Render based on current view
+  switch (view) {
+    case 'create':
+      return <GameCreation onCreateGame={handleCreateGame} />;
+      
+    case 'join':
+      return joinGameId ? (
+        <JoinGame gameId={joinGameId} onJoinGame={handleJoinGame} />
+      ) : (
+        <GameCreation onCreateGame={handleCreateGame} />
+      );
+      
+    case 'waiting':
+      return gameId ? (
+        <WaitingRoom
+          gameId={gameId}
+          connections={connections}
+          playerName={playerName}
+          maxPlayers={maxPlayers}
+          isCreator={isCreator}
+          onStartGame={handleStartGame}
+        />
+      ) : (
+        <GameCreation onCreateGame={handleCreateGame} />
+      );
+      
+    case 'game':
+      return gameState ? (
+        <GameBoard
+          gameState={gameState}
+          onRollDice={rollDice}
+          onEndTurn={endTurn}
+          onBuyProperty={buyProperty}
+        />
+      ) : (
+        <GameCreation onCreateGame={handleCreateGame} />
+      );
+      
+    default:
+      return <GameCreation onCreateGame={handleCreateGame} />;
+  }
 };
 
 export default Index;

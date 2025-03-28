@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,20 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Dominican flag colors
+				dominican: {
+					red: '#CE1126',
+					blue: '#0055A4',
+					white: '#FFFFFF'
+				},
+				// Game theme colors
+				game: {
+					primary: '#009B77',    // Tropical green
+					secondary: '#F2C85A',  // Sandy yellow
+					accent: '#E55934',     // Sunset orange
+					highlight: '#46B1C9',  // Caribbean blue
+					dark: '#533747'        // Deep purple
 				}
 			},
 			borderRadius: {
@@ -84,11 +99,24 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'dice-roll': {
+					'0%, 100%': { transform: 'rotateX(0) rotateY(0)' },
+					'25%': { transform: 'rotateX(90deg) rotateY(45deg)' },
+					'50%': { transform: 'rotateX(180deg) rotateY(90deg)' },
+					'75%': { transform: 'rotateX(270deg) rotateY(135deg)' }
+				},
+				'token-move': {
+					'0%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-20px)' },
+					'100%': { transform: 'translateY(0)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'dice-roll': 'dice-roll 0.5s ease-in-out',
+				'token-move': 'token-move 1s ease-in-out'
 			}
 		}
 	},
