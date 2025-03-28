@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Player, GameState, GameEvent, Connection } from '../types/game';
 import PeerService from '../services/PeerService';
@@ -7,6 +8,8 @@ import { useToast } from '@/components/ui/use-toast';
 const INITIAL_MONEY = 1500;
 const BOT_COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33D1', '#33D1FF', '#D1FF33', '#FF5733', '#D133FF'];
 const PLAYER_COLORS = ['#F2C85A', '#E55934', '#46B1C9', '#009B77', '#533747'];
+const BOT_DECISION_DELAY = 1500; // Bot thinking time in ms
+const BOT_PROPERTY_BUY_CHANCE = 0.7; // 70% chance to buy properties
 
 export const useGame = () => {
   const [gameId, setGameId] = useState<string | null>(null);
@@ -226,9 +229,11 @@ export const useGame = () => {
     
     const currentPlayerIndex = gameState.currentPlayer;
     const currentPlayer = gameState.players[currentPlayerIndex];
-    const isMyTurn = currentPlayer.id === PeerService.getCurrentPeerId();
+    const isCurrentPlayerBot = currentPlayer.type === 'bot';
+    const isMyTurn = !isCurrentPlayerBot && currentPlayer.id === PeerService.getCurrentPeerId();
     
-    if (!isMyTurn || gameState.hasDiceRolled) {
+    // Only allow roll if it's user's turn or creator handling bot's turn
+    if ((!isMyTurn && !isCurrentPlayerBot) || gameState.hasDiceRolled) {
       console.log("Not your turn or already rolled");
       return;
     }
@@ -252,11 +257,20 @@ export const useGame = () => {
     
     setGameState(updatedState);
     
+    // Broadcast the dice roll to all players
     if (isCreator) {
       PeerService.sendToAll({
         type: 'game-state',
         payload: updatedState
       });
+      
+      // Toast notification for bot rolls
+      if (isCurrentPlayerBot) {
+        toast({
+          title: "Bot rolled dice",
+          description: `${currentPlayer.name} rolled ${dice1} + ${dice2} = ${diceSum}`
+        });
+      }
     } else {
       PeerService.sendToAll({
         type: 'dice-rolled',
@@ -267,13 +281,24 @@ export const useGame = () => {
         }
       });
     }
-  }, [gameState, isCreator]);
+  }, [gameState, isCreator, toast]);
 
   const endTurn = useCallback(() => {
     if (!gameState) return;
     
     if (!gameState.hasDiceRolled) {
       console.log("Must roll dice before ending turn");
+      return;
+    }
+    
+    const currentPlayerIndex = gameState.currentPlayer;
+    const currentPlayer = gameState.players[currentPlayerIndex];
+    const isCurrentPlayerBot = currentPlayer.type === 'bot';
+    const isMyTurn = !isCurrentPlayerBot && currentPlayer.id === PeerService.getCurrentPeerId();
+    
+    // Only allow end turn if it's user's turn or creator handling bot's turn
+    if (!isMyTurn && !isCurrentPlayerBot) {
+      console.log("Not your turn");
       return;
     }
     
@@ -293,38 +318,16 @@ export const useGame = () => {
         payload: updatedState
       });
       
-      if (gameState.players[nextPlayerIndex].type === 'bot') {
-        setTimeout(() => {
-          const botUpdatedState = { ...updatedState, hasDiceRolled: true };
-          setGameState(botUpdatedState);
-          
-          PeerService.sendToAll({
-            type: 'game-state',
-            payload: botUpdatedState
-          });
-          
-          rollDice();
-          
-          const currentPlayer = gameState.players[nextPlayerIndex];
-          const propertyAtPosition = gameState.properties.find(
-            p => p.position === currentPlayer.position
-          );
-          
-          if (
-            propertyAtPosition && 
-            !propertyAtPosition.owner && 
-            currentPlayer.money >= (propertyAtPosition.price || 0)
-          ) {
-            setTimeout(() => {
-              buyProperty();
-            }, 1000);
-          }
-          
-          setTimeout(() => {
-            endTurn();
-          }, 2000);
-        }, 1500);
+      // Toast notification for bot ending turn
+      if (isCurrentPlayerBot) {
+        toast({
+          title: "Bot ended turn",
+          description: `${currentPlayer.name} ended their turn`
+        });
       }
+      
+      // Handle bot's turn if next player is a bot
+      handleBotTurn(nextPlayerIndex, updatedState);
     } else {
       PeerService.sendToAll({
         type: 'end-turn',
@@ -333,17 +336,24 @@ export const useGame = () => {
         }
       });
     }
-  }, [gameState, isCreator, rollDice]);
+  }, [gameState, isCreator, toast]);
 
   const buyProperty = useCallback(() => {
     if (!gameState) return;
     
     const currentPlayerIndex = gameState.currentPlayer;
     const currentPlayer = gameState.players[currentPlayerIndex];
+    const isCurrentPlayerBot = currentPlayer.type === 'bot';
+    const isMyTurn = !isCurrentPlayerBot && currentPlayer.id === PeerService.getCurrentPeerId();
     
-    const isMyTurn = currentPlayer.id === PeerService.getCurrentPeerId();
-    if (!isMyTurn || !gameState.hasDiceRolled) {
-      console.log("Not your turn or dice not rolled yet");
+    // Only allow buy if it's user's turn or creator handling bot's turn
+    if (!isMyTurn && !isCurrentPlayerBot) {
+      console.log("Not your turn");
+      return;
+    }
+    
+    if (!gameState.hasDiceRolled) {
+      console.log("Dice not rolled yet");
       return;
     }
     
@@ -400,6 +410,78 @@ export const useGame = () => {
     }
   }, [gameState, isCreator, toast]);
 
+  const handleBotTurn = useCallback((botPlayerIndex: number, currentState: GameState) => {
+    if (!isCreator || currentState.players[botPlayerIndex].type !== 'bot') {
+      return;
+    }
+    
+    const executeBotTurn = async () => {
+      // Step 1: Bot rolls the dice (with delay to simulate thinking)
+      await new Promise(resolve => setTimeout(resolve, BOT_DECISION_DELAY));
+      
+      // Set hasDiceRolled to true before rolling the dice for UI indication
+      const botRollState = { 
+        ...currentState, 
+        hasDiceRolled: true 
+      };
+      
+      setGameState(botRollState);
+      
+      PeerService.sendToAll({
+        type: 'game-state',
+        payload: botRollState
+      });
+      
+      // Actually roll the dice
+      await new Promise(resolve => setTimeout(resolve, 500));
+      rollDice();
+      
+      // Step 2: Bot decides whether to buy property (with delay)
+      await new Promise(resolve => setTimeout(resolve, BOT_DECISION_DELAY));
+      
+      const botPlayer = gameState?.players[botPlayerIndex];
+      if (!botPlayer) return;
+      
+      const propertyAtPosition = gameState?.properties.find(
+        p => p.position === botPlayer.position
+      );
+      
+      let didBotBuyProperty = false;
+      
+      if (
+        propertyAtPosition && 
+        !propertyAtPosition.owner && 
+        botPlayer.money >= propertyAtPosition.price
+      ) {
+        // Bot makes a decision based on probability
+        const willBuy = Math.random() <= BOT_PROPERTY_BUY_CHANCE;
+        
+        if (willBuy) {
+          buyProperty();
+          didBotBuyProperty = true;
+        } else {
+          toast({
+            title: "Bot declined purchase",
+            description: `${botPlayer.name} decided not to buy ${propertyAtPosition.name}`
+          });
+        }
+      }
+      
+      // Step 3: Bot ends their turn (with delay)
+      await new Promise(resolve => setTimeout(resolve, didBotBuyProperty ? BOT_DECISION_DELAY : 800));
+      endTurn();
+    };
+    
+    executeBotTurn().catch(err => {
+      console.error("Error during bot turn:", err);
+      toast({
+        title: "Bot Error",
+        description: "There was an error during the bot's turn",
+        variant: "destructive"
+      });
+    });
+  }, [gameState, isCreator, rollDice, buyProperty, endTurn, toast]);
+
   useEffect(() => {
     if (isCreator) {
       const handleDiceRolled = (data: any) => {
@@ -454,38 +536,8 @@ export const useGame = () => {
           payload: updatedState
         });
         
-        if (gameState.players[nextPlayerIndex].type === 'bot') {
-          setTimeout(() => {
-            const botUpdatedState = { ...updatedState, hasDiceRolled: true };
-            setGameState(botUpdatedState);
-            
-            PeerService.sendToAll({
-              type: 'game-state',
-              payload: botUpdatedState
-            });
-            
-            rollDice();
-            
-            const currentPlayer = gameState.players[nextPlayerIndex];
-            const propertyAtPosition = gameState.properties.find(
-              p => p.position === currentPlayer.position
-            );
-            
-            if (
-              propertyAtPosition && 
-              !propertyAtPosition.owner && 
-              currentPlayer.money >= (propertyAtPosition.price || 0)
-            ) {
-              setTimeout(() => {
-                buyProperty();
-              }, 1000);
-            }
-            
-            setTimeout(() => {
-              endTurn();
-            }, 2000);
-          }, 1500);
-        }
+        // Handle bot turn if next player is a bot
+        handleBotTurn(nextPlayerIndex, updatedState);
       };
       
       const handleBuyProperty = (data: any) => {
@@ -546,7 +598,16 @@ export const useGame = () => {
         PeerService.off('buy-property', handleBuyProperty);
       };
     }
-  }, [gameState, isCreator, rollDice, buyProperty, endTurn, toast]);
+  }, [gameState, isCreator, handleBotTurn, toast]);
+
+  // Initialize bot turns when game starts
+  useEffect(() => {
+    if (gameState?.gameStarted && isCreator && 
+        gameState.players[gameState.currentPlayer].type === 'bot') {
+      // If the first player is a bot, start their turn
+      handleBotTurn(gameState.currentPlayer, gameState);
+    }
+  }, [gameState?.gameStarted, gameState?.currentPlayer, handleBotTurn, isCreator, gameState]);
 
   useEffect(() => {
     return () => {

@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, useTexture } from '@react-three/drei';
@@ -5,7 +6,7 @@ import * as THREE from 'three';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dices, CircleDollarSign, Home } from 'lucide-react';
+import { Dices, CircleDollarSign, Home, Bot } from 'lucide-react';
 import { GameState, Player } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
 import PeerService from '@/services/PeerService';
@@ -159,8 +160,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
   
   const currentPlayerIndex = gameState.currentPlayer;
   const currentPlayer = gameState.players[currentPlayerIndex];
+  const isBot = currentPlayer?.type === 'bot';
   
-  const isMyTurn = gameState.players[currentPlayerIndex]?.id === PeerService.getCurrentPeerId();
+  const isMyTurn = !isBot && gameState.players[currentPlayerIndex]?.id === PeerService.getCurrentPeerId();
   
   useEffect(() => {
     if (currentPlayer) {
@@ -247,7 +249,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 <div className="space-y-2">
                   <Button
                     onClick={handleRollDice}
-                    disabled={!isMyTurn || diceRolling || gameState.hasDiceRolled}
+                    disabled={!isMyTurn || diceRolling || gameState.hasDiceRolled || isBot}
                     className="bg-game-primary hover:bg-game-primary/90 flex items-center gap-2"
                   >
                     <Dices size={16} />
@@ -256,7 +258,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                   
                   <Button
                     onClick={onEndTurn}
-                    disabled={!isMyTurn || !gameState.hasDiceRolled}
+                    disabled={!isMyTurn || !gameState.hasDiceRolled || isBot}
                     variant="outline"
                     className="w-full border-game-primary/30"
                   >
@@ -267,12 +269,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
             </CardContent>
           </Card>
           
-          {canBuy && (
+          {canBuy && !isBot && (
             <Card className="w-fit shadow-lg">
               <CardContent className="p-4">
                 <Button
                   onClick={onBuyProperty}
-                  disabled={!isMyTurn || !gameState.hasDiceRolled}
+                  disabled={!isMyTurn || !gameState.hasDiceRolled || isBot}
                   className="bg-game-secondary hover:bg-game-secondary/90 flex items-center gap-2"
                 >
                   <Home size={16} />
@@ -283,21 +285,28 @@ const GameBoard: React.FC<GameBoardProps> = ({
           )}
         </div>
         
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 space-y-2">
           <Badge className="px-3 py-1 text-md bg-game-primary text-white">
             <div className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded-full" 
                 style={{ backgroundColor: currentPlayer?.color }}
               ></div>
+              {isBot && <Bot size={14} />}
               {currentPlayer?.name}'s Turn
             </div>
           </Badge>
           
-          <div className="mt-2 flex items-center gap-1 bg-white/80 px-3 py-1 rounded-full text-sm">
+          <div className="flex items-center gap-1 bg-white/80 px-3 py-1 rounded-full text-sm">
             <CircleDollarSign size={14} className="text-game-primary" />
             <span>${currentPlayer?.money}</span>
           </div>
+          
+          {isBot && gameState.hasDiceRolled && (
+            <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm animate-pulse">
+              Bot is thinking...
+            </div>
+          )}
         </div>
       </div>
     </div>
