@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
-import { Player, GameState, GameEvent, Connection, Property } from '../types/game'; // Added Property type
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Player, GameState, GameEvent, Connection, Property } from '../types/game';
 import PeerService from '../services/PeerService';
 import { dominicanProperties } from '../data/dominican-properties';
 import { useToast } from '@/components/ui/use-toast';
@@ -31,13 +31,47 @@ export const useGame = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isCreator, setIsCreator] = useState(false);
   const { toast } = useToast();
-
-  // Ref for checking state within useEffect timeout and for comparison in handlers
   const gameStateRef = useRef(gameState);
   useEffect(() => {
-      gameStateRef.current = gameState;
+    gameStateRef.current = gameState;
   }, [gameState]);
 
+  // --- Helper Functions ---
+
+  const getRailroadsOwned = (playerId: string, properties: Property[]): number => {
+    return properties.filter(p => p.owner === playerId && p.color === 'railroad').length;
+  };
+
+  const getUtilitiesOwned = (playerId: string, properties: Property[]): number => {
+    return properties.filter(p => p.owner === playerId && p.color === 'utility').length;
+  };
+
+  const calculateRent = (property: Property, ownerId: string, gameState: GameState, diceSum: number): number => {
+    if (property.mortgaged || !property.owner || property.owner !== ownerId) {
+      return 0; // No rent if mortgaged or owner mismatch (shouldn't happen with checks)
+    }
+
+    const owner = gameState.players.find(p => p.id === ownerId);
+    if (!owner) return 0; // Should not happen
+
+    switch (property.color) {
+      case 'railroad': {
+        const railroadsOwned = getRailroadsOwned(ownerId, gameState.properties);
+        return property.rent[Math.max(0, railroadsOwned - 1)] || 0; // Use count-1 as index
+      }
+      case 'utility': {
+        const utilitiesOwned = getUtilitiesOwned(ownerId, gameState.properties);
+        const multiplier = property.rent[Math.max(0, utilitiesOwned - 1)] || 0; // Use count-1 as index
+        return multiplier * diceSum;
+      }
+      default: // Regular property
+        // TODO: Add logic for checking if owner owns all properties of the color group (doubles rent on unimproved lots)
+        return property.rent[property.houses || 0] || 0; // Use houses as index
+    }
+  };
+
+
+  // --- Core Hooks Logic ---
 
   const initializePeer = useCallback(async (name: string) => {
     try {
@@ -560,9 +594,46 @@ export const useGame = () => {
            toast({ title: "Bot Decision", description: `${botPlayerAfterRoll.name} declined to buy ${propertyAtPosition.name}` });
            console.log(`Bot ${botPlayer.name} declined ${propertyAtPosition.name}`);
         }
-      } else if (propertyAtPosition && propertyAtPosition.owner && propertyAtPosition.owner !== botPlayerAfterRoll.id) {
-          console.log(`Bot ${botPlayer.name} landed on owned property ${propertyAtPosition.name}`);
-          // TODO: Implement rent payment logic here
+      } else if (propertyAtPosition && propertyAtPosition.owner && propertyAtPosition.owner !== botPlayerAfterRoll.id && !propertyAtPosition.mortgaged) {
+        console.log(`Bot ${botPlayer.name} landed on owned property ${propertyAtPosition.name} owned by ${propertyAtPosition.owner}`);
+        const ownerIndex = currentLoopState.players.findIndex(p => p.id === propertyAtPosition.owner);
+        if (ownerIndex !== -1) {
+          const owner = currentLoopState.players[ownerIndex];
+          // Use the dice roll from the *start* of the bot's turn for utility calculation
+          const rentDiceSum = stateAfterRoll.dice[0] + stateAfterRoll.dice[1];
+          const rentAmount = calculateRent(propertyAtPosition, owner.id, currentLoopState, rentDiceSum);
+
+          if (rentAmount > 0) {
+            console.log(`Rent due: $${rentAmount}`);
+            const playersAfterRent = [...currentLoopState.players]; // Use state after potential buy attempt
+            let botMoney = botPlayerAfterRoll.money;
+            let ownerMoney = owner.money;
+
+            if (botMoney >= rentAmount) {
+              botMoney -= rentAmount;
+              ownerMoney += rentAmount;
+              toast({ title: "Rent Paid", description: `${botPlayerAfterRoll.name} paid $${rentAmount} rent to ${owner.name} for ${propertyAtPosition.name}` });
+            } else {
+              // Handle bankruptcy scenario (simplified: pay what you can, owner gets less)
+              ownerMoney += botMoney;
+              toast({ title: "Partial Rent Paid", description: `${botPlayerAfterRoll.name} couldn't afford full rent, paid $${botMoney} to ${owner.name}. (Bankruptcy logic needed)`, variant: "destructive" });
+              botMoney = 0;
+              // TODO: Implement full bankruptcy logic (selling assets, removing player)
+            }
+
+            playersAfterRent[botPlayerIndex] = { ...botPlayerAfterRoll, money: botMoney };
+            playersAfterRent[ownerIndex] = { ...owner, money: ownerMoney };
+
+            stateAfterAction = { // Update stateAfterAction based on rent payment
+              ...currentLoopState, // Build upon state after potential buy
+              players: playersAfterRent
+            };
+            setGameState(stateAfterAction); // Creator updates state
+            PeerService.sendToAll({ type: 'game-state', payload: stateAfterAction }); // Creator broadcasts
+          }
+        } else {
+          console.warn(`Owner ${propertyAtPosition.owner} not found for rent payment.`);
+        }
       }
 
       // --- Step 3: End Turn ---
@@ -643,25 +714,63 @@ export const useGame = () => {
           // Validate the position based on creator's state + received dice
           const diceSum = receivedDice[0] + receivedDice[1];
           const correctNewPosition = (prevPlayerState.position + diceSum) % 40;
+          let playerLandedOnProperty: Property | undefined = undefined; // Keep track of property landed on
 
           if (receivedPlayerState.position !== correctNewPosition) {
               console.warn(`[Creator] Correcting player position! Client sent ${receivedPlayerState.position}, calculated ${correctNewPosition}`);
-              
-              // Create a corrected version of the players array
-              const correctedPlayers = [...receivedState.players];
+              const correctedPlayers = [...receivedState.players]; // Start with received players
               correctedPlayers[receivedState.currentPlayer] = {
                   ...receivedPlayerState,
-                  position: correctNewPosition // Use the creator's calculated position
+                  position: correctNewPosition
               };
-              
-              // Update the correctedState object
-              correctedState = {
-                  ...correctedState,
-                  players: correctedPlayers
-              };
+              correctedState = { ...correctedState, players: correctedPlayers }; // Update state being built
               needsCorrectionBroadcast = true;
+              playerLandedOnProperty = correctedState.properties.find(p => p.position === correctNewPosition);
           } else {
               console.log(`[Creator] Player position matches calculated position (${correctNewPosition}).`);
+              playerLandedOnProperty = correctedState.properties.find(p => p.position === correctNewPosition); // Still need property info
+          }
+
+          // --- Rent Payment Logic (After Position Validation/Correction) ---
+          if (playerLandedOnProperty && playerLandedOnProperty.owner && playerLandedOnProperty.owner !== receivedPlayerState.id && !playerLandedOnProperty.mortgaged) {
+              console.log(`[Creator] Player ${receivedPlayerState.name} landed on owned property ${playerLandedOnProperty.name} owned by ${playerLandedOnProperty.owner}`);
+              const ownerIndex = correctedState.players.findIndex(p => p.id === playerLandedOnProperty.owner); // Use correctedState players
+              const currentPlayerIndex = correctedState.currentPlayer; // Index of the player who landed
+
+              if (ownerIndex !== -1 && currentPlayerIndex !== -1) {
+                  const owner = correctedState.players[ownerIndex];
+                  const currentPlayer = correctedState.players[currentPlayerIndex]; // Get the player who has to pay
+                  const rentAmount = calculateRent(playerLandedOnProperty, owner.id, correctedState, diceSum); // Use correctedState
+
+                  if (rentAmount > 0) {
+                      console.log(`[Creator] Rent due: $${rentAmount}`);
+                      const playersAfterRent = [...correctedState.players]; // Copy players from potentially corrected state
+                      let payerMoney = currentPlayer.money;
+                      let ownerMoney = owner.money;
+
+                      if (payerMoney >= rentAmount) {
+                          payerMoney -= rentAmount;
+                          ownerMoney += rentAmount;
+                          // Toast is tricky here, rely on client UI reacting to state change
+                      } else {
+                          // Handle bankruptcy (simplified)
+                          ownerMoney += payerMoney;
+                          payerMoney = 0;
+                          // TODO: Implement full bankruptcy logic
+                      }
+
+                      playersAfterRent[currentPlayerIndex] = { ...currentPlayer, money: payerMoney };
+                      playersAfterRent[ownerIndex] = { ...owner, money: ownerMoney };
+
+                      correctedState = { // Update the state being built
+                          ...correctedState,
+                          players: playersAfterRent
+                      };
+                      needsCorrectionBroadcast = true; // Ensure this state is broadcast
+                  }
+              } else {
+                  console.warn(`[Creator] Owner (${playerLandedOnProperty.owner}) or Payer (${receivedPlayerState.id}) not found for rent payment.`);
+              }
           }
       }
 
