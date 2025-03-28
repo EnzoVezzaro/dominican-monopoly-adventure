@@ -3,7 +3,7 @@ import { SpecialCardType } from '@/types/game';
 export const surpriseCards: SpecialCardType[] = [
   {
     id: 'surprise-1',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Advance to Go',
     description: 'Move forward to the Go space and collect $200',
     effect: {
@@ -15,7 +15,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-2',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Go to Jail',
     description: 'Go directly to Jail. Do not pass Go, do not collect $200',
     effect: {
@@ -27,7 +27,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-3',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Move Back 3 Spaces',
     description: 'Move back 3 spaces',
     effect: {
@@ -39,7 +39,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-4',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Speeding Fine',
     description: 'Pay a speeding fine of $15',
     effect: {
@@ -51,7 +51,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-5',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Advance to Santiago',
     description: 'Advance to Santiago de los Caballeros',
     effect: {
@@ -63,7 +63,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-6',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Bank Dividend',
     description: 'Bank pays you dividend of $50',
     effect: {
@@ -75,7 +75,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-7',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Go Back to Start',
     description: 'Go back to the starting point',
     effect: {
@@ -87,7 +87,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-8',
-    type: 'suprise',
+    type: 'surprise',
     title: 'General Repairs',
     description: 'Pay $25 per house and $100 per hotel you own',
     effect: {
@@ -99,7 +99,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-9',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Advance to Nearest Railroad',
     description: 'Advance to the nearest Railroad and pay double rent',
     effect: {
@@ -111,7 +111,7 @@ export const surpriseCards: SpecialCardType[] = [
   },
   {
     id: 'surprise-10',
-    type: 'suprise',
+    type: 'surprise',
     title: 'Building Loan Matures',
     description: 'Your building loan matures. Collect $150',
     effect: {

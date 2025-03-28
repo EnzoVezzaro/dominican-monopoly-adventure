@@ -136,20 +136,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onUpdateJailStatus,
   onGiveJailCard
 }) => {
-  
-  // Ensure card stacks are properly initialized
-  useEffect(() => {
-    console.log('game state: ', gameState);
-    
-    if (!gameState.cardStacks?.suprise || !gameState.cardStacks?.box) {
-      console.error('Card stacks not initialized properly');
-      return;
-    }
-    console.log('Card stacks initialized:', {
-      suprise: gameState.cardStacks.suprise.length,
-      box: gameState.cardStacks.box.length
-    });
-  }, [gameState.cardStacks]);
   const [diceValues, setDiceValues] = useState<[number, number]>([1, 1]);
   const [diceRolling, setDiceRolling] = useState(false);
   const [propertyForAction, setPropertyForAction] = useState<Property | null>(null);
@@ -161,21 +147,26 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const isMyTurn = currentPlayer && !isBot && currentPlayer.id === PeerService.getCurrentPeerId();
   
   console.log('propertyForAction: ', propertyForAction);
-  
 
   useEffect(() => {
-    if (currentPlayer) {
+    // Only check for new actions if we don't already have one pending
+    if (currentPlayer && !propertyForAction) {
       const propertyAtPosition = gameState.properties.find(
         p => p.position === currentPlayer.position
       );
-      const isBuyable = !!propertyAtPosition && !propertyAtPosition.owner && 
-        (propertyAtPosition.price !== undefined) && gameState.hasDiceRolled && 
-        !isBot && currentPlayer.id === PeerService.getCurrentPeerId();
-      const isSpecialCard = propertyAtPosition?.type === 'suprise' || propertyAtPosition?.type === 'box';
       
-      if (isSpecialCard && gameState.hasDiceRolled && !isBot) {
+      // Skip if we're not on a property or it's not our turn
+      if (!propertyAtPosition || !gameState.hasDiceRolled || isBot || 
+          currentPlayer.id !== PeerService.getCurrentPeerId()) {
+        return;
+      }
+
+      const isBuyable = !propertyAtPosition.owner && (propertyAtPosition.price !== undefined);
+      const isSpecialCard = propertyAtPosition.type === 'surprise' || propertyAtPosition.type === 'box';
+      
+      if (isSpecialCard) {
         try {
-          const stackType = propertyAtPosition.type === 'suprise' ? 'suprise' : 'box';
+          const stackType = propertyAtPosition.type === 'surprise' ? 'surprise' : 'box';
           const cardStack = gameState.cardStacks?.[stackType] ?? [];
           
           if (cardStack.length === 0) {
@@ -196,16 +187,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
             });
             return;
           }
-
-          const drawnCard = {
-            ...propertyAtPosition,
-            drawnCard: {
-              ...cardStack[0],
-              effect: cardStack[0].effect
-            }
-          };
-          console.log('Drawn card:', drawnCard);
-          setPropertyForAction(drawnCard);
         } catch (error) {
           console.error('Error drawing card:', error);
           setPropertyForAction(null);
@@ -226,7 +207,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
       if (++rollCount === 4) {
         clearInterval(rollInterval);
         setDiceRolling(false);
-        onRollDice([4,0]);
+        onRollDice(latestDiceValues);
       }
     }, 100);
   };
@@ -361,10 +342,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
                         onGiveJailCard(effect.playerId);
                         break;
                       default:
-                        console.error('Unknown effect type:', effect.type);
+                        console.error('Unknown effect type:', effect);
                         return;
                     }
                     setPropertyForAction(null);
+                    console.log('is this triggeting');
+                    
                   }
                 );
               } catch (error) {
@@ -385,6 +368,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
             onPass={() => setViewedProperty(null)}
             open={!!viewedProperty}
             showActions={false}
+            isCardView={true}
           />
         )}
 

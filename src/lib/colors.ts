@@ -15,7 +15,7 @@ export const getPropertyColor = (property: Property) => {
       return DEFAULT_RAILROAD_COLOR;
     case 'utility':
       return DEFAULT_UTILITY_COLOR;
-    case 'suprise':
+    case 'surprise':
       return DEFAULT_SURPRISE_COLOR;
     case 'box':
       return DEFAULT_BOX_COLOR;

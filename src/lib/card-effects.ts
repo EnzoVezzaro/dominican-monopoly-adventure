@@ -65,12 +65,12 @@ export const drawCard = (
   gameState: GameState,
   property: Property
 ): SpecialCardType | null => {
-  if (property.type !== 'suprise' && property.type !== 'box') {
+  if (property.type !== 'surprise' && property.type !== 'box') {
     return null;
   }
 
-  const cardStack = property.type === 'suprise' 
-    ? gameState.cardStacks.suprise 
+  const cardStack = property.type === 'surprise' 
+    ? gameState.cardStacks.surprise 
     : gameState.cardStacks.box;
   
   return cardStack.length > 0 ? cardStack[0] : null;

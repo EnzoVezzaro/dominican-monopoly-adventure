@@ -84,6 +84,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn, properti
             open={true}
             showActions={false}
             closeButton={true}
+            isCardView={true}
           />
         </div>
       </div>

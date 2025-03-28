@@ -5,7 +5,7 @@ import { DEFAULT_SURPRISE_COLOR, DEFAULT_BOX_COLOR } from '../lib/colors';
 export const dominicanProperties: Property[] = [
   // Special cards
   {
-    id: 'suprise-1',
+    id: 'surprise-1',
     name: '¡Sorpresa!',
     price: 0,
     rent: [],
@@ -13,7 +13,7 @@ export const dominicanProperties: Property[] = [
     houses: 0,
     position: 2,
     mortgaged: false,
-    type: 'suprise' as PropertyType
+    type: 'surprise' as PropertyType
   },
   {
     id: 'box-1', 

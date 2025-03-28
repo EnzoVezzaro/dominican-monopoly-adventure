@@ -12,7 +12,15 @@ export interface Player {
   isJailed: boolean;
 }
 
-export type PropertyType = "property" | "utility" | "railroad" | "suprise" | "box";
+export type PropertyType = "property" | "utility" | "railroad" | "surprise" | "box";
+
+export type CardEffectAction = {
+  type: 'move' | 'money' | 'jail' | 'get_out_of_jail';
+  playerId: string;
+  position?: number;
+  amount?: number;
+  jailed?: boolean;
+};
 
 export type CardEffect = {
   type: 'move' | 'money' | 'jail' | 'get_out_of_jail';
@@ -28,7 +36,7 @@ export type CardEffect = {
 
 export interface SpecialCardType {
   id: string;
-  type: 'suprise' | 'box';
+  type: 'surprise' | 'box';
   title: string;
   description: string;
   effect: CardEffect;
@@ -61,7 +69,7 @@ export interface GameState {
   isCreator: boolean;
   hasDiceRolled: boolean;
   cardStacks: {
-    suprise: SpecialCardType[];
+    surprise: SpecialCardType[];
     box: SpecialCardType[];
   };
 }
@@ -71,7 +79,13 @@ export interface Connection {
   name: string;
 }
 
-export interface GameEvent {
-  type: string;
-  payload: any;
+export type GameEventPayload = 
+  | { type: 'join-game'; name: string }
+  | { type: 'game-state'; state: GameState }
+  | { type: 'start-game' }
+  | { type: 'peer-disconnected'; peerId: string };
+
+export interface GameEvent<T extends GameEventPayload = GameEventPayload> {
+  type: T['type'];
+  payload: Omit<T, 'type'>;
 }

@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Property, PropertyType, SpecialCardType } from '@/types/game';
 import { X, CircleDollarSign, Home, Gift, Box } from 'lucide-react';
 import { getPropertyColor } from '@/lib/colors';
-import { boxCards } from '@/data/special-cards';
+import { boxCards, surpriseCards } from '@/data/special-cards';
 
 interface PropertyActionCardProps {
   property: Property;
@@ -61,10 +61,9 @@ const renderPropertyDetails = (property: Property) => {
 
 const renderCard = (card: SpecialCardType) => {
   console.log('show card: ', card);
-  
   return (
     <div className="text-center py-4">
-      {card.type === 'suprise' ? (
+      {card.type === 'surprise' ? (
         <Gift size={48} className="mx-auto mb-4 text-purple-600" />
       ) : (
         <Box size={48} className="mx-auto mb-4 text-yellow-500" />
@@ -90,14 +89,18 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
   isCardView = false
 }) => {
   const canAfford = playerMoney >= (property.price || 0);
-  const isSpecialCard = property.type === 'suprise' || property.type === 'box';
+  const isSpecialCard = property.type === 'surprise' || property.type === 'box';
   const showCardActions = isCardView && property.drawnCard;
   let specialCardInfo;
   if (isSpecialCard){
-    specialCardInfo = boxCards.filter((card)=>card.id === property.id)[0];
+    specialCardInfo = (property.type === 'surprise' ? surpriseCards : boxCards).filter((card)=>card.id === property.id)[0];
+    if (!specialCardInfo){
+      console.log('card not found for property: ', property);
+    }
+    
   }
 
-  console.log('isvie: ', showActions);
+  console.log('isvie: ', property, showActions, isCardView);
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onPass()}>
@@ -133,7 +136,7 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
           )}
           
           {
-            !isSpecialCard && !showActions &&
+            isCardView &&
             <Button
               variant="ghost"
               size="icon"

@@ -11,19 +11,6 @@ const PLAYER_COLORS = ['#F2C85A', '#E55934', '#46B1C9', '#009B77', '#533747'];
 const BOT_DECISION_DELAY = 1500; // Bot thinking time in ms
 const BOT_PROPERTY_BUY_CHANCE = 0.7; // 70% chance to buy properties
 
-// Define specific types for event payloads
-// Note: We are moving away from specific event types like DiceRolledPayload for client actions
-// and relying on validating the broadcasted GameState.
-interface EndTurnPayload {
-  playerId: string;
-}
-
-interface BuyPropertyPayload {
-  playerId: string;
-  propertyId: string;
-}
-
-
 export const useGame = () => {
   const [gameId, setGameId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState('');
@@ -120,7 +107,7 @@ export const useGame = () => {
       isCreator: true,
       hasDiceRolled: false,
       cardStacks: {
-        suprise: surpriseCards,
+        surprise: surpriseCards,
         box: boxCards
       }
     };
