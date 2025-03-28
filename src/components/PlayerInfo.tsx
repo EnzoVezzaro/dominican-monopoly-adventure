@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { CircleDollarSign, Home, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Player, Property } from '@/types/game';
 import PropertyActionCard from './PropertyActionCard';
 
@@ -39,20 +40,26 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn, properti
               {player.properties.map((propertyId) => {
                 const property = properties.find(p => p.id === propertyId);
                 return (
-                  <div 
-                    key={propertyId}
-                    className="w-4 h-4 rounded-full border border-gray-300 cursor-pointer hover:opacity-80"
-                    style={{ 
-                      backgroundColor: propertyId.includes('railroad') 
-                        ? '#000' 
-                        : propertyId.includes('utility')
-                        ? '#aaa'
-                        : propertyId.split('-')[0] === 'property' 
-                        ? `${player.color}` 
-                        : '#ccc'
-                    }}
-                    onClick={() => property && setSelectedProperty(property)}
-                  ></div>
+                  <Tooltip key={propertyId} delayDuration={100}>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="w-4 h-4 rounded-full border border-gray-300 cursor-pointer hover:opacity-80"
+                        style={{ 
+                          backgroundColor: propertyId.includes('railroad') 
+                            ? '#000' 
+                            : propertyId.includes('utility')
+                            ? '#aaa'
+                            : propertyId.split('-')[0] === 'property' 
+                            ? `${player.color}` 
+                            : '#ccc'
+                        }}
+                        onClick={() => property && setSelectedProperty(property)}
+                      ></div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{property?.name || propertyId}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -81,6 +88,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn, properti
             onPass={() => setSelectedProperty(null)}
             open={true}
             showActions={false}
+            closeButton={true}
           />
         </div>
       </div>
