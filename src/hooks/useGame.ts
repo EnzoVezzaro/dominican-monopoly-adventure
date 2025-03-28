@@ -3,6 +3,7 @@ import { Player, GameState, GameEvent, Connection, Property } from '../types/gam
 import PeerService from '../services/PeerService';
 import { dominicanProperties } from '../data/dominican-properties';
 import { useToast } from '@/components/ui/use-toast';
+import { boxCards, surpriseCards } from '@/data/special-cards';
 
 const INITIAL_MONEY = 1500;
 const BOT_COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33D1', '#33D1FF', '#D1FF33', '#FF5733', '#D133FF'];
@@ -117,7 +118,11 @@ export const useGame = () => {
       gameOver: false,
       maxPlayers: players,
       isCreator: true,
-      hasDiceRolled: false
+      hasDiceRolled: false,
+      cardStacks: {
+        suprise: surpriseCards,
+        box: boxCards
+      }
     };
     setGameState(initialState);
     gameStateRef.current = initialState; // Initialize ref
@@ -897,6 +902,118 @@ export const useGame = () => {
     };
   }, []);
 
+  // --- New Game Action Functions ---
+
+  const onMovePlayer = useCallback((playerId: string, newPosition: number) => {
+    const currentState = gameStateRef.current;
+    if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
+
+    const playerIndex = currentState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return;
+
+    const updatedPlayers = [...currentState.players];
+    updatedPlayers[playerIndex] = {
+      ...updatedPlayers[playerIndex],
+      position: newPosition % 40
+    };
+
+    const updatedState: GameState = {
+      ...currentState,
+      players: updatedPlayers
+    };
+
+    setGameState(updatedState);
+    PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+  }, []);
+
+  const onUpdateMoney = useCallback((playerId: string, amount: number) => {
+    const currentState = gameStateRef.current;
+    if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
+
+    const playerIndex = currentState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return;
+
+    const updatedPlayers = [...currentState.players];
+    updatedPlayers[playerIndex] = {
+      ...updatedPlayers[playerIndex],
+      money: Math.max(0, updatedPlayers[playerIndex].money + amount)
+    };
+
+    const updatedState: GameState = {
+      ...currentState,
+      players: updatedPlayers
+    };
+
+    setGameState(updatedState);
+    PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+
+    toast({
+      title: amount >= 0 ? "Money Added" : "Money Deducted",
+      description: `$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`
+    });
+  }, [toast]);
+
+  const onUpdateJailStatus = useCallback((playerId: string, jailed: boolean) => {
+    const currentState = gameStateRef.current;
+    if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
+
+    const playerIndex = currentState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return;
+
+    const updatedPlayers = [...currentState.players];
+    updatedPlayers[playerIndex] = {
+      ...updatedPlayers[playerIndex],
+      isJailed: jailed
+    };
+
+    const updatedState: GameState = {
+      ...currentState,
+      players: updatedPlayers
+    };
+
+    setGameState(updatedState);
+    PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+
+    toast({
+      title: jailed ? "Player Jailed" : "Player Released",
+      description: `${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`
+    });
+  }, [toast]);
+
+  const onGiveJailCard = useCallback((fromPlayerId: string, toPlayerId: string) => {
+    const currentState = gameStateRef.current;
+    if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
+
+    const fromPlayerIndex = currentState.players.findIndex(p => p.id === fromPlayerId);
+    const toPlayerIndex = currentState.players.findIndex(p => p.id === toPlayerId);
+    if (fromPlayerIndex === -1 || toPlayerIndex === -1) return;
+
+    const updatedPlayers = [...currentState.players];
+    // In a real implementation, we'd track jail cards in player state
+    // This is a simplified version that just shows the transfer
+    updatedPlayers[fromPlayerIndex] = {
+      ...updatedPlayers[fromPlayerIndex],
+      // Would decrement jail card count here
+    };
+    updatedPlayers[toPlayerIndex] = {
+      ...updatedPlayers[toPlayerIndex],
+      // Would increment jail card count here
+    };
+
+    const updatedState: GameState = {
+      ...currentState,
+      players: updatedPlayers
+    };
+
+    setGameState(updatedState);
+    PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+
+    toast({
+      title: "Jail Card Transferred",
+      description: `Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`
+    });
+  }, [toast]);
+
   return {
     gameId,
     playerName,
@@ -907,8 +1024,12 @@ export const useGame = () => {
     createGame,
     joinGame,
     startGame,
-    rollDice, // Now accepts dice argument
+    rollDice,
     endTurn,
-    buyProperty
+    buyProperty,
+    onMovePlayer,
+    onUpdateMoney,
+    onUpdateJailStatus,
+    onGiveJailCard
   };
 };

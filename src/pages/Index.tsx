@@ -20,7 +20,11 @@ const Index = () => {
     startGame,
     rollDice,
     endTurn,
-    buyProperty
+    buyProperty,
+    onMovePlayer,
+    onUpdateMoney,
+    onUpdateJailStatus,
+    onGiveJailCard
   } = useGame();
   
   const [view, setView] = useState<'create' | 'join' | 'waiting' | 'game'>('create');
@@ -101,6 +105,10 @@ const Index = () => {
           onRollDice={rollDice}
           onEndTurn={endTurn}
           onBuyProperty={buyProperty}
+          onMovePlayer={onMovePlayer}
+          onUpdateMoney={onUpdateMoney}
+          onUpdateJailStatus={onUpdateJailStatus}
+          onGiveJailCard={onGiveJailCard}
         />
       ) : (
         <GameCreation onCreateGame={handleCreateGame} />

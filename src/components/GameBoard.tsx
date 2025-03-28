@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,12 +11,17 @@ import PlayerInfo from './PlayerInfo';
 import PeerService from '@/services/PeerService';
 import PropertyActionCard from './PropertyActionCard';
 import { getPropertyColor } from '@/lib/colors';
+import { CardEffectAction, handleCardEffect } from '@/lib/card-effects';
 
 interface GameBoardProps {
   gameState: GameState;
   onRollDice: (dice: [number, number]) => void;
   onEndTurn: () => void;
   onBuyProperty: (propertyId: string) => void;
+  onMovePlayer: (playerId: string, newPosition: number) => void;
+  onUpdateMoney: (playerId: string, amount: number) => void;
+  onUpdateJailStatus: (playerId: string, jailed: boolean) => void;
+  onGiveJailCard: (playerId: string) => void;
 }
 
 const Board = ({ 
@@ -25,7 +30,7 @@ const Board = ({
   currentPlayer,
   onSpaceClick 
 }: { 
-  properties: GameState['properties'], 
+  properties: Property[], 
   players: Player[],
   currentPlayer: number,
   onSpaceClick: (property: Property | null, position: number) => void
@@ -125,8 +130,26 @@ const GameBoard: React.FC<GameBoardProps> = ({
   gameState,
   onRollDice,
   onEndTurn,
-  onBuyProperty
+  onBuyProperty,
+  onMovePlayer,
+  onUpdateMoney,
+  onUpdateJailStatus,
+  onGiveJailCard
 }) => {
+  
+  // Ensure card stacks are properly initialized
+  useEffect(() => {
+    console.log('game state: ', gameState);
+    
+    if (!gameState.cardStacks?.suprise || !gameState.cardStacks?.box) {
+      console.error('Card stacks not initialized properly');
+      return;
+    }
+    console.log('Card stacks initialized:', {
+      suprise: gameState.cardStacks.suprise.length,
+      box: gameState.cardStacks.box.length
+    });
+  }, [gameState.cardStacks]);
   const [diceValues, setDiceValues] = useState<[number, number]>([1, 1]);
   const [diceRolling, setDiceRolling] = useState(false);
   const [propertyForAction, setPropertyForAction] = useState<Property | null>(null);
@@ -137,6 +160,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const isBot = currentPlayer?.type === 'bot';
   const isMyTurn = currentPlayer && !isBot && currentPlayer.id === PeerService.getCurrentPeerId();
   
+  console.log('propertyForAction: ', propertyForAction);
+  
+
   useEffect(() => {
     if (currentPlayer) {
       const propertyAtPosition = gameState.properties.find(
@@ -145,10 +171,51 @@ const GameBoard: React.FC<GameBoardProps> = ({
       const isBuyable = !!propertyAtPosition && !propertyAtPosition.owner && 
         (propertyAtPosition.price !== undefined) && gameState.hasDiceRolled && 
         !isBot && currentPlayer.id === PeerService.getCurrentPeerId();
-      setPropertyForAction(isBuyable ? propertyAtPosition : null);
+      const isSpecialCard = propertyAtPosition?.type === 'suprise' || propertyAtPosition?.type === 'box';
+      
+      if (isSpecialCard && gameState.hasDiceRolled && !isBot) {
+        try {
+          const stackType = propertyAtPosition.type === 'suprise' ? 'suprise' : 'box';
+          const cardStack = gameState.cardStacks?.[stackType] ?? [];
+          
+          if (cardStack.length === 0) {
+            console.warn('Empty card stack:', stackType);
+            setPropertyForAction({
+              ...propertyAtPosition,
+              drawnCard: {
+                id: 'default',
+                type: stackType,
+                title: 'No Cards Available',
+                description: 'This card stack is empty',
+                effect: {
+                  type: 'money',
+                  value: 0,
+                  description: 'No effect'
+                }
+              }
+            });
+            return;
+          }
+
+          const drawnCard = {
+            ...propertyAtPosition,
+            drawnCard: {
+              ...cardStack[0],
+              effect: cardStack[0].effect
+            }
+          };
+          console.log('Drawn card:', drawnCard);
+          setPropertyForAction(drawnCard);
+        } catch (error) {
+          console.error('Error drawing card:', error);
+          setPropertyForAction(null);
+        }
+      } else {
+        setPropertyForAction(isBuyable ? propertyAtPosition : null);
+      }
     }
   }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot]);
-  
+
   const handleRollDice = () => {
     setDiceRolling(true);
     let rollCount = 0;
@@ -159,7 +226,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
       if (++rollCount === 4) {
         clearInterval(rollInterval);
         setDiceRolling(false);
-        onRollDice(latestDiceValues);
+        onRollDice([4,0]);
       }
     }, 100);
   };
@@ -178,7 +245,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
           <pointLight position={[10, 10, 10]} castShadow intensity={0.8} />
           <spotLight position={[0, 15, 0]} angle={0.3} penumbra={1} castShadow intensity={1} />
           <Board 
-            properties={gameState.properties}
+            properties={gameState.properties as Property[]}
             players={gameState.players}
             currentPlayer={currentPlayerIndex}
             onSpaceClick={handleSpaceClick}
@@ -232,9 +299,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
           </Card>
         </div>
 
-        {/* Property Action Card (for buying) */}
+        {/* Property Action Card (for buying/special cards) */}
         {propertyForAction && currentPlayer && isMyTurn && (
-          <PropertyActionCard
+          <PropertyActionCard 
             property={propertyForAction}
             playerMoney={currentPlayer.money}
             onBuy={() => {
@@ -242,6 +309,68 @@ const GameBoard: React.FC<GameBoardProps> = ({
               setPropertyForAction(null);
             }}
             onPass={() => setPropertyForAction(null)}
+            onAcceptCard={() => {
+              console.log('here: ', propertyForAction);
+              
+              if (!propertyForAction?.drawnCard) {
+                console.error('No drawn card found');
+                return;
+              }
+
+              console.log('Processing card:', propertyForAction.drawnCard);
+              
+              try {
+                handleCardEffect(
+                  propertyForAction.drawnCard,
+                  currentPlayer,
+                  (effect: CardEffectAction) => {
+                    if (!effect) {
+                      console.error('No effect provided');
+                      return;
+                    }
+
+                    console.log('Executing effect:', effect);
+                    
+                    switch(effect.type) {
+                      case 'move':
+                        if (effect.position === undefined) {
+                          console.error('Missing position for move effect');
+                          return;
+                        }
+                        console.log('Moving player to position', effect.position);
+                        onMovePlayer(effect.playerId, effect.position);
+                        break;
+                      case 'money':
+                        if (effect.amount === undefined) {
+                          console.error('Missing amount for money effect');
+                          return;
+                        }
+                        console.log('Updating money by', effect.amount);
+                        onUpdateMoney(effect.playerId, effect.amount);
+                        break;
+                      case 'jail':
+                        if (effect.jailed === undefined) {
+                          console.error('Missing jailed status for jail effect');
+                          return;
+                        }
+                        console.log('Setting jail status to', effect.jailed);
+                        onUpdateJailStatus(effect.playerId, effect.jailed);
+                        break;
+                      case 'get_out_of_jail':
+                        console.log('Giving get out of jail card');
+                        onGiveJailCard(effect.playerId);
+                        break;
+                      default:
+                        console.error('Unknown effect type:', effect.type);
+                        return;
+                    }
+                    setPropertyForAction(null);
+                  }
+                );
+              } catch (error) {
+                console.error('Error processing card effect:', error);
+              }
+            }}
             open={!!propertyForAction}
             showActions={true}
           />

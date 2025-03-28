@@ -1,4 +1,3 @@
-
 export type PlayerType = 'human' | 'bot';
 
 export interface Player {
@@ -15,6 +14,26 @@ export interface Player {
 
 export type PropertyType = "property" | "utility" | "railroad" | "suprise" | "box";
 
+export type CardEffect = {
+  type: 'move' | 'money' | 'jail' | 'get_out_of_jail';
+  value: number;
+  target?: 'self' | 'all' | 'others';
+  description: string;
+  fromPlayerId?: string;
+  toPlayerId?: string;
+} & (
+  { type: 'move' | 'money' | 'jail' } |
+  { type: 'get_out_of_jail', fromPlayerId: string, toPlayerId: string }
+);
+
+export interface SpecialCardType {
+  id: string;
+  type: 'suprise' | 'box';
+  title: string;
+  description: string;
+  effect: CardEffect;
+}
+
 export interface Property {
   id: string;
   name: string;
@@ -26,6 +45,7 @@ export interface Property {
   position: number;
   mortgaged: boolean;
   type: PropertyType;
+  drawnCard?: SpecialCardType;
 }
 
 export interface GameState {
@@ -40,6 +60,10 @@ export interface GameState {
   maxPlayers: number;
   isCreator: boolean;
   hasDiceRolled: boolean;
+  cardStacks: {
+    suprise: SpecialCardType[];
+    box: SpecialCardType[];
+  };
 }
 
 export interface Connection {

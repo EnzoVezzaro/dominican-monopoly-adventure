@@ -11,18 +11,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Property, PropertyType } from '@/types/game';
+import { Property, PropertyType, SpecialCardType } from '@/types/game';
 import { X, CircleDollarSign, Home, Gift, Box } from 'lucide-react';
 import { getPropertyColor } from '@/lib/colors';
+import { boxCards } from '@/data/special-cards';
 
 interface PropertyActionCardProps {
   property: Property;
   playerMoney: number;
   onBuy: () => void;
   onPass: () => void;
+  onAcceptCard?: () => void;
   open: boolean;
   showActions?: boolean;
   closeButton?: boolean;
+  isCardView?: boolean;
 }
 
 const renderPropertyDetails = (property: Property) => {
@@ -56,50 +59,68 @@ const renderPropertyDetails = (property: Property) => {
   );
 };
 
-const renderSupriseCard = () => (
-  <div className="text-center py-4">
-    <Gift size={48} className="mx-auto mb-4 text-purple-600" />
-    <h3 className="text-xl font-bold mb-2">¡Sorpresa!</h3>
-    <p className="text-gray-600">Draw a surprise card to see what happens!</p>
-  </div>
-);
-
-const renderBoxCard = () => (
-  <div className="text-center py-4">
-    <Box size={48} className="mx-auto mb-4 text-yellow-500" />
-    <h3 className="text-xl font-bold mb-2">Caja de Comunidad</h3>
-    <p className="text-gray-600">Draw a community chest card!</p>
-  </div>
-);
+const renderCard = (card: SpecialCardType) => {
+  console.log('show card: ', card);
+  
+  return (
+    <div className="text-center py-4">
+      {card.type === 'suprise' ? (
+        <Gift size={48} className="mx-auto mb-4 text-purple-600" />
+      ) : (
+        <Box size={48} className="mx-auto mb-4 text-yellow-500" />
+      )}
+      <h3 className="text-xl font-bold mb-2">{card.title}</h3>
+      <p className="text-gray-600 mb-4">{card.description}</p>
+      <div className="bg-gray-100 p-3 rounded-lg">
+        <p className="font-semibold">{card.effect.description}</p>
+      </div>
+    </div>
+  )
+};
 
 const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
   property,
   playerMoney,
   onBuy,
   onPass,
+  onAcceptCard,
   open,
   showActions = true,
-  closeButton = false
+  closeButton = false,
+  isCardView = false
 }) => {
   const canAfford = playerMoney >= (property.price || 0);
   const isSpecialCard = property.type === 'suprise' || property.type === 'box';
+  const showCardActions = isCardView && property.drawnCard;
+  let specialCardInfo;
+  if (isSpecialCard){
+    specialCardInfo = boxCards.filter((card)=>card.id === property.id)[0];
+  }
+
+  console.log('isvie: ', showActions);
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onPass()}>
       <AlertDialogContent className="max-w-sm">
         <AlertDialogHeader>
-          <AlertDialogTitle>{property.name}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {showCardActions 
+              ? specialCardInfo.title
+              : property.name}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            {showActions 
-              ? isSpecialCard 
-                ? `You landed on ${property.name}`
-                : `You landed on ${property.name}. You can choose to buy it or pass.`
-              : `Viewing ${property.name} details`}
+            {showCardActions
+              ? `You drew a card from ${property.name}`
+              : showActions 
+                ? isSpecialCard 
+                  ? `You landed on ${specialCardInfo.title}`
+                  : `You landed on ${property.name}. You can choose to buy it or pass.`
+                : `Viewing ${property.name} details`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <Card className="border-none shadow-none">
-          {!isSpecialCard && (
+          {!isSpecialCard && !showCardActions && (
             <CardHeader className="p-0 mb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">{property.name}</CardTitle>
@@ -111,20 +132,22 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
             </CardHeader>
           )}
           
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-0 right-0 m-2 text-gray-500 hover:text-gray-800"
-            onClick={onPass}
-          >
-            <X size={20} />
-          </Button>
+          {
+            !isSpecialCard && !showActions &&
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-0 right-0 m-2 text-gray-500 hover:text-gray-800"
+              onClick={onPass}
+            >
+              <X size={20} />
+            </Button>
+          }
 
           <CardContent className="p-0 space-y-3">
-            {property.type === 'suprise' && renderSupriseCard()}
-            {property.type === 'box' && renderBoxCard()}
-            
-            {!isSpecialCard && (
+            {isSpecialCard ? (
+              renderCard(specialCardInfo)
+            ) : (
               <>
                 <div className="flex items-center justify-between text-lg border-b pb-2">
                   <span className="flex items-center gap-1 font-semibold">
@@ -146,7 +169,17 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
           </CardContent>
         </Card>
 
-        {showActions && !isSpecialCard && (
+        {isSpecialCard && showActions ? (
+          <AlertDialogFooter>
+            <Button
+              onClick={onAcceptCard}
+              className="w-full bg-game-primary hover:bg-game-primary/90"
+              size="lg"
+            >
+              Accept Card Effect
+            </Button>
+          </AlertDialogFooter>
+        ) : showActions && !isSpecialCard && (
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button variant="outline" onClick={onPass}>Pass</Button>
