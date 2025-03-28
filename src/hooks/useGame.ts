@@ -402,7 +402,7 @@ export const useGame = () => {
 
   useEffect(() => {
     if (isCreator) {
-      PeerService.on('dice-rolled', (data) => {
+      const handleDiceRolled = (data: any) => {
         if (!gameState) return;
         
         const { playerId, dice, newPosition } = data;
@@ -429,9 +429,9 @@ export const useGame = () => {
           type: 'game-state',
           payload: updatedState
         });
-      });
+      };
       
-      PeerService.on('end-turn', (data) => {
+      const handleEndTurn = (data: any) => {
         if (!gameState) return;
         
         const { playerId } = data;
@@ -486,9 +486,9 @@ export const useGame = () => {
             }, 2000);
           }, 1500);
         }
-      });
+      };
       
-      PeerService.on('buy-property', (data) => {
+      const handleBuyProperty = (data: any) => {
         if (!gameState) return;
         
         const { playerId, propertyId } = data;
@@ -534,14 +534,18 @@ export const useGame = () => {
           title: "Property Purchased",
           description: `${player.name} bought ${property.name} for $${property.price}`
         });
-      });
+      };
+
+      PeerService.on('dice-rolled', handleDiceRolled);
+      PeerService.on('end-turn', handleEndTurn);
+      PeerService.on('buy-property', handleBuyProperty);
+      
+      return () => {
+        PeerService.off('dice-rolled', handleDiceRolled);
+        PeerService.off('end-turn', handleEndTurn);
+        PeerService.off('buy-property', handleBuyProperty);
+      };
     }
-    
-    return () => {
-      PeerService.off('dice-rolled');
-      PeerService.off('end-turn');
-      PeerService.off('buy-property');
-    };
   }, [gameState, isCreator, rollDice, buyProperty, endTurn, toast]);
 
   useEffect(() => {

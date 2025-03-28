@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dices, CircleDollarSign, Home } from 'lucide-react';
 import { GameState, Player } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
+import PeerService from '@/services/PeerService';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -23,15 +24,12 @@ const Board = ({ properties, players, currentPlayer }: {
 }) => {
   const boardRef = useRef<THREE.Group>(null);
   
-  // Create a fallback texture in case the image fails to load
   const fallbackTexture = new THREE.TextureLoader().load(
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
   );
   
-  // Use a state to track if texture loading failed
   const [textureLoadFailed, setTextureLoadFailed] = useState(false);
   
-  // Try to load the texture
   useEffect(() => {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.load(
@@ -48,7 +46,6 @@ const Board = ({ properties, players, currentPlayer }: {
     );
   }, []);
   
-  // Get the texture or use the fallback
   const boardTexture = textureLoadFailed
     ? fallbackTexture
     : new THREE.TextureLoader().load('/board-texture.jpg');
@@ -163,7 +160,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const currentPlayerIndex = gameState.currentPlayer;
   const currentPlayer = gameState.players[currentPlayerIndex];
   
-  // Check if it's the current client's turn
   const isMyTurn = gameState.players[currentPlayerIndex]?.id === PeerService.getCurrentPeerId();
   
   useEffect(() => {
@@ -196,9 +192,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
       onRollDice();
     }, 1000);
   };
-
-  // Import PeerService at the top
-  const PeerService = require('../services/PeerService').default;
   
   return (
     <div className="flex flex-col h-screen">
