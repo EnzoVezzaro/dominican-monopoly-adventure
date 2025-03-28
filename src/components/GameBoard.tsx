@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, useTexture } from '@react-three/drei';
@@ -22,11 +23,36 @@ const Board = ({ properties, players, currentPlayer }: {
   currentPlayer: number
 }) => {
   const boardRef = useRef<THREE.Group>(null);
-  const textureProps = useTexture('/board-texture.jpg');
   
-  const texture = new THREE.TextureLoader().load(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  // Create a fallback texture in case the image fails to load
+  const fallbackTexture = new THREE.TextureLoader().load(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
   );
+  
+  // Use a state to track if texture loading failed
+  const [textureLoadFailed, setTextureLoadFailed] = useState(false);
+  
+  // Try to load the texture
+  useEffect(() => {
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+      '/board-texture.jpg',
+      () => {
+        console.log('Board texture loaded successfully');
+        setTextureLoadFailed(false);
+      },
+      undefined,
+      () => {
+        console.log('Failed to load board texture, using fallback');
+        setTextureLoadFailed(true);
+      }
+    );
+  }, []);
+  
+  // Get the texture or use the fallback
+  const boardTexture = textureLoadFailed
+    ? fallbackTexture
+    : new THREE.TextureLoader().load('/board-texture.jpg');
   
   const boardSpaces = [];
   const boardSize = 10;
@@ -115,7 +141,7 @@ const Board = ({ properties, players, currentPlayer }: {
     <group ref={boardRef}>
       <mesh position={[0, -0.1, 0]} receiveShadow>
         <boxGeometry args={[boardSize, 0.1, boardSize]} />
-        <meshStandardMaterial color="#f0f0f0" map={texture} />
+        <meshStandardMaterial color="#f0f0f0" map={boardTexture} />
       </mesh>
       
       {boardSpaces}
