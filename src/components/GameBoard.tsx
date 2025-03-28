@@ -7,15 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dices, CircleDollarSign, Home, Bot } from 'lucide-react';
-import { GameState, Player } from '@/types/game';
+import { GameState, Player, Property } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
 import PeerService from '@/services/PeerService';
+import PropertyActionCard from './PropertyActionCard'; // Import the new component
 
 interface GameBoardProps {
   gameState: GameState;
   onRollDice: (dice: [number, number]) => void;
   onEndTurn: () => void;
-  onBuyProperty: () => void;
+  onBuyProperty: (propertyId: string) => void; // Pass property ID when buying
 }
 
 const Board = ({ properties, players, currentPlayer }: { 
@@ -156,8 +157,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
 }) => {
   const [diceValues, setDiceValues] = useState<[number, number]>([1, 1]);
   const [diceRolling, setDiceRolling] = useState(false);
-  const [canBuy, setCanBuy] = useState(false);
-  
+  const [propertyForAction, setPropertyForAction] = useState<Property | null>(null); // New state for the action card
+
   const currentPlayerIndex = gameState.currentPlayer;
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isBot = currentPlayer?.type === 'bot';
@@ -171,14 +172,24 @@ const GameBoard: React.FC<GameBoardProps> = ({
       const propertyAtPosition = gameState.properties.find(
         p => p.position === currentPlayer.position
       );
-      
-      setCanBuy(
-        !!propertyAtPosition && 
-        !propertyAtPosition.owner && 
-        currentPlayer.money >= (propertyAtPosition.price || 0)
-      );
+
+      // Check if the property is buyable and it's the human player's turn after rolling
+      const isBuyable = !!propertyAtPosition &&
+                        !propertyAtPosition.owner &&
+                        (propertyAtPosition.price !== undefined) && // Ensure it has a price (not Go, Jail, etc.)
+                        gameState.hasDiceRolled && // Only show after dice roll
+                        !isBot && // Only for human players
+                        currentPlayer.id === PeerService.getCurrentPeerId(); // Only for the active player's client
+
+      if (isBuyable) {
+        setPropertyForAction(propertyAtPosition);
+      } else {
+        setPropertyForAction(null); // Clear if not buyable or not the right conditions
+      }
+    } else {
+      setPropertyForAction(null); // Clear if no current player
     }
-  }, [currentPlayer, gameState.properties]);
+  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot]);
   
   const handleRollDice = () => {
     setDiceRolling(true);
@@ -279,23 +290,25 @@ const GameBoard: React.FC<GameBoardProps> = ({
               </div>
             </CardContent>
           </Card>
-          
-          {canBuy && !isBot && (
-            <Card className="w-fit shadow-lg">
-              <CardContent className="p-4">
-                <Button
-                  onClick={onBuyProperty}
-                  disabled={!isMyTurn || !gameState.hasDiceRolled || isBot}
-                  className="bg-game-secondary hover:bg-game-secondary/90 flex items-center gap-2"
-                >
-                  <Home size={16} />
-                  Buy Property
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* Remove the old buy button card */}
         </div>
-        
+
+        {/* Render the PropertyActionCard */}
+        {propertyForAction && currentPlayer && isMyTurn && (
+          <PropertyActionCard
+            property={propertyForAction}
+            playerMoney={currentPlayer.money}
+            onBuy={() => {
+              onBuyProperty(propertyForAction.id);
+              setPropertyForAction(null); // Close card after buying
+            }}
+            onPass={() => {
+              setPropertyForAction(null); // Close card on pass
+            }}
+            open={!!propertyForAction}
+          />
+        )}
+
         <div className="absolute top-4 left-4 space-y-2">
           <Badge className="px-3 py-1 text-md bg-game-primary text-white">
             <div className="flex items-center gap-2">
