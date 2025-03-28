@@ -162,7 +162,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isBot = currentPlayer?.type === 'bot';
   
-  const isMyTurn = !isBot && gameState.players[currentPlayerIndex]?.id === PeerService.getCurrentPeerId();
+  // Determine if it's the current user's turn
+  const isMyTurn = currentPlayer && !isBot && 
+    currentPlayer.id === PeerService.getCurrentPeerId();
   
   useEffect(() => {
     if (currentPlayer) {

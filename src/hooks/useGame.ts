@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Player, GameState, GameEvent, Connection } from '../types/game';
 import PeerService from '../services/PeerService';
@@ -245,6 +244,7 @@ export const useGame = () => {
     const updatedPlayers = [...gameState.players];
     const updatedPlayer = { ...currentPlayer };
     
+    // Calculate new position by adding dice sum to current position
     updatedPlayer.position = (updatedPlayer.position + diceSum) % 40;
     updatedPlayers[currentPlayerIndex] = updatedPlayer;
     
@@ -327,7 +327,9 @@ export const useGame = () => {
       }
       
       // Handle bot's turn if next player is a bot
-      handleBotTurn(nextPlayerIndex, updatedState);
+      if (updatedState.players[nextPlayerIndex].type === 'bot') {
+        handleBotTurn(nextPlayerIndex, updatedState);
+      }
     } else {
       PeerService.sendToAll({
         type: 'end-turn',
@@ -411,17 +413,21 @@ export const useGame = () => {
   }, [gameState, isCreator, toast]);
 
   const handleBotTurn = useCallback((botPlayerIndex: number, currentState: GameState) => {
-    if (!isCreator || currentState.players[botPlayerIndex].type !== 'bot') {
+    if (!isCreator || !currentState || currentState.players[botPlayerIndex]?.type !== 'bot') {
       return;
     }
     
     const executeBotTurn = async () => {
+      // Make sure we're working with the latest state
+      const latestState = gameState || currentState;
+      if (!latestState) return;
+      
       // Step 1: Bot rolls the dice (with delay to simulate thinking)
       await new Promise(resolve => setTimeout(resolve, BOT_DECISION_DELAY));
       
       // Set hasDiceRolled to true before rolling the dice for UI indication
       const botRollState = { 
-        ...currentState, 
+        ...latestState, 
         hasDiceRolled: true 
       };
       
@@ -434,16 +440,55 @@ export const useGame = () => {
       
       // Actually roll the dice
       await new Promise(resolve => setTimeout(resolve, 500));
-      rollDice();
+      
+      // We need to ensure we're using the latest state
+      const dice1 = Math.floor(Math.random() * 6) + 1;
+      const dice2 = Math.floor(Math.random() * 6) + 1;
+      const diceSum = dice1 + dice2;
+      
+      const botPlayer = latestState.players[botPlayerIndex];
+      if (!botPlayer) return;
+      
+      // Calculate and update bot's new position
+      const newPosition = (botPlayer.position + diceSum) % 40;
+      
+      const updatedPlayers = [...latestState.players];
+      updatedPlayers[botPlayerIndex] = {
+        ...botPlayer,
+        position: newPosition
+      };
+      
+      const updatedState: GameState = {
+        ...latestState,
+        players: updatedPlayers,
+        dice: [dice1, dice2],
+        hasDiceRolled: true
+      };
+      
+      setGameState(updatedState);
+      
+      PeerService.sendToAll({
+        type: 'game-state',
+        payload: updatedState
+      });
+      
+      toast({
+        title: "Bot rolled dice",
+        description: `${botPlayer.name} rolled ${dice1} + ${dice2} = ${diceSum}`
+      });
       
       // Step 2: Bot decides whether to buy property (with delay)
       await new Promise(resolve => setTimeout(resolve, BOT_DECISION_DELAY));
       
-      const botPlayer = gameState?.players[botPlayerIndex];
-      if (!botPlayer) return;
+      // Get the latest state again
+      const stateAfterRoll = gameState || updatedState;
+      if (!stateAfterRoll) return;
       
-      const propertyAtPosition = gameState?.properties.find(
-        p => p.position === botPlayer.position
+      const botPlayerAfterRoll = stateAfterRoll.players[botPlayerIndex];
+      if (!botPlayerAfterRoll) return;
+      
+      const propertyAtPosition = stateAfterRoll.properties.find(
+        p => p.position === botPlayerAfterRoll.position
       );
       
       let didBotBuyProperty = false;
@@ -451,25 +496,94 @@ export const useGame = () => {
       if (
         propertyAtPosition && 
         !propertyAtPosition.owner && 
-        botPlayer.money >= propertyAtPosition.price
+        botPlayerAfterRoll.money >= propertyAtPosition.price
       ) {
         // Bot makes a decision based on probability
         const willBuy = Math.random() <= BOT_PROPERTY_BUY_CHANCE;
         
         if (willBuy) {
-          buyProperty();
-          didBotBuyProperty = true;
+          // Update property ownership
+          const propertyIndex = stateAfterRoll.properties.findIndex(
+            p => p.position === botPlayerAfterRoll.position
+          );
+          
+          if (propertyIndex !== -1) {
+            const property = stateAfterRoll.properties[propertyIndex];
+            
+            const botUpdatedPlayers = [...stateAfterRoll.players];
+            botUpdatedPlayers[botPlayerIndex] = {
+              ...botPlayerAfterRoll,
+              money: botPlayerAfterRoll.money - property.price,
+              properties: [...botPlayerAfterRoll.properties, property.id]
+            };
+            
+            const botUpdatedProperties = [...stateAfterRoll.properties];
+            botUpdatedProperties[propertyIndex] = {
+              ...property,
+              owner: botPlayerAfterRoll.id
+            };
+            
+            const botBuyState: GameState = {
+              ...stateAfterRoll,
+              players: botUpdatedPlayers,
+              properties: botUpdatedProperties
+            };
+            
+            setGameState(botBuyState);
+            
+            PeerService.sendToAll({
+              type: 'game-state',
+              payload: botBuyState
+            });
+            
+            toast({
+              title: "Bot purchased property",
+              description: `${botPlayerAfterRoll.name} bought ${property.name} for $${property.price}`
+            });
+            
+            didBotBuyProperty = true;
+          }
         } else {
           toast({
             title: "Bot declined purchase",
-            description: `${botPlayer.name} decided not to buy ${propertyAtPosition.name}`
+            description: `${botPlayerAfterRoll.name} decided not to buy ${propertyAtPosition.name}`
           });
         }
       }
       
       // Step 3: Bot ends their turn (with delay)
       await new Promise(resolve => setTimeout(resolve, didBotBuyProperty ? BOT_DECISION_DELAY : 800));
-      endTurn();
+      
+      // Get latest state again
+      const finalState = gameState;
+      if (!finalState) return;
+      
+      const nextPlayerIndex = (botPlayerIndex + 1) % finalState.players.length;
+      
+      const endTurnState: GameState = {
+        ...finalState,
+        currentPlayer: nextPlayerIndex,
+        hasDiceRolled: false
+      };
+      
+      setGameState(endTurnState);
+      
+      PeerService.sendToAll({
+        type: 'game-state',
+        payload: endTurnState
+      });
+      
+      toast({
+        title: "Bot ended turn",
+        description: `${botPlayerAfterRoll.name} ended their turn`
+      });
+      
+      // If next player is also a bot, handle their turn
+      if (endTurnState.players[nextPlayerIndex].type === 'bot') {
+        // Small delay before starting next bot's turn
+        await new Promise(resolve => setTimeout(resolve, 500));
+        handleBotTurn(nextPlayerIndex, endTurnState);
+      }
     };
     
     executeBotTurn().catch(err => {
@@ -480,7 +594,7 @@ export const useGame = () => {
         variant: "destructive"
       });
     });
-  }, [gameState, isCreator, rollDice, buyProperty, endTurn, toast]);
+  }, [gameState, isCreator, toast]);
 
   useEffect(() => {
     if (isCreator) {
@@ -603,7 +717,7 @@ export const useGame = () => {
   // Initialize bot turns when game starts
   useEffect(() => {
     if (gameState?.gameStarted && isCreator && 
-        gameState.players[gameState.currentPlayer].type === 'bot') {
+        gameState.players[gameState.currentPlayer]?.type === 'bot') {
       // If the first player is a bot, start their turn
       handleBotTurn(gameState.currentPlayer, gameState);
     }
