@@ -42,8 +42,8 @@ const Board = ({
   
   const boardTexture = new THREE.TextureLoader().load('/board-texture.jpg') || fallbackTexture;
   const boardSpaces = [];
-  const boardSize = 20;  // Double the board size
-  const spaceSize = 2;   // Double the space size
+  const boardSize = 22;  // Keep same overall board size
+  const spaceSize = 1.8; // Make properties thinner
 
   const houseModel = useFBX('/assets/3d/Buildings/Building_1.fbx');
   const houseModel2 = useFBX('/assets/3d/Buildings/Building_2.fbx');
@@ -55,10 +55,27 @@ const Board = ({
   for (let i = 0; i < 40; i++) {
     let x = 0, z = 0;
     const cornerOffset = boardSize / 2 - spaceSize / 2;
-    if (i < 10) { x = cornerOffset - i * spaceSize; z = cornerOffset; }
-    else if (i < 20) { x = -cornerOffset; z = cornerOffset - (i - 10) * spaceSize; }
-    else if (i < 30) { x = -cornerOffset + (i - 20) * spaceSize; z = -cornerOffset; }
-    else { x = cornerOffset; z = -cornerOffset + (i - 30) * spaceSize; }
+    
+    if (i < 10) { 
+      // First side (GO to JAIL) - correct as is
+      if (i === 0) { x = cornerOffset; z = cornerOffset - 0.85; } // GO
+      else if (i < 10) { x = cornerOffset - i * spaceSize - 1.1; z = cornerOffset + -0.85; } // Properties 1-9
+    }
+    else if (i < 20) { 
+      // Second side (JAIL to PARKING)
+      if (i === 10) { x = -cornerOffset; z = cornerOffset; } // JAIL
+      else if (i < 20) { x = -cornerOffset + spaceSize - 1; z = cornerOffset - (i - 10) * spaceSize - 1.1; } // Properties 11-19
+    }
+    else if (i < 30) { 
+      // Third side (PARKING to GO TO JAIL)
+      if (i === 20) { x = -cornerOffset; z = -cornerOffset; } // PARKING
+      else if (i < 30) { x = -cornerOffset + (i - 20) * spaceSize + 1.1; z = -cornerOffset + 0.85; } // Properties 21-29
+    }
+    else { 
+      // Fourth side (GO TO JAIL to GO)
+      if (i === 30) { x = cornerOffset; z = -cornerOffset; } // GO TO JAIL
+      else if (i < 40) { x = cornerOffset - 0.85; z = -cornerOffset + (i - 30) * spaceSize + 1.1; } // Properties 31-39
+    }
     
     const property = properties.find(p => p.position === i);
     const color = getPropertyColor(property);
@@ -76,7 +93,7 @@ const Board = ({
         0]}
       >
         <mesh position={[0, 0, -0.7]} receiveShadow>
-          <boxGeometry args={[spaceSize, 0.1, 0.6]} />
+          <boxGeometry args={[spaceSize, 0.1, 0.9]} />
           <meshStandardMaterial color={color} />
         </mesh>
         <Text
@@ -132,6 +149,7 @@ const Board = ({
   }
 
   // Add center board logo - removed font property to avoid loading error
+  /**
   const centerContent = (
     <group position={[0, 0.1, 0]}>
       <Text
@@ -146,6 +164,7 @@ const Board = ({
       </Text>
     </group>
   );
+   */
   
   const playerTokens = players.map((player, index) => {
     const position = player.position;
@@ -179,14 +198,14 @@ const Board = ({
         <meshStandardMaterial color="#E6DDC6" map={boardTexture} />
       </mesh>
       
-      {/* Board inner area with lighter color */}
+      {/* Board inner area with lighter color
       <mesh position={[0, -0.05, 0]} receiveShadow>
         <boxGeometry args={[boardSize - spaceSize * 2, 0.1, boardSize - spaceSize * 2]} />
         <meshStandardMaterial color="#E6DDC6" />
       </mesh>
+       */}
       {boardSpaces}
       {playerTokens}
-      {centerContent}
     </group>
   );
 };

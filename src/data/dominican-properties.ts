@@ -1,8 +1,8 @@
-
 import { Property, PropertyType } from '../types/game';
 import { DEFAULT_SURPRISE_COLOR, DEFAULT_BOX_COLOR } from '../lib/colors';
 
 export const dominicanProperties: Property[] = [
+  // GO corner
   {
     id: 'go-space',
     name: 'GO',
@@ -15,32 +15,7 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'utility' as PropertyType
   },
-  // Special cards
-  {
-    id: 'surprise-1',
-    name: '¡Sorpresa!',
-    price: 0,
-    rent: [],
-    color: DEFAULT_SURPRISE_COLOR,
-    group: 'surprise',
-    houses: 0,
-    position: 2,
-    mortgaged: false,
-    type: 'surprise' as PropertyType
-  },
-  {
-    id: 'box-1', 
-    name: 'Caja de Comunidad',
-    price: 0,
-    rent: [],
-    group: 'box',
-    color: DEFAULT_BOX_COLOR,
-    houses: 0,
-    position: 4,
-    mortgaged: false,
-    type: 'box' as PropertyType
-  },
-  // Brown
+  // First side (positions 1-8)
   {
     id: 'property-1',
     name: 'Santiago de los Caballeros',
@@ -54,6 +29,18 @@ export const dominicanProperties: Property[] = [
     type: 'property' as PropertyType
   },
   {
+    id: 'surprise-1',
+    name: '¡Sorpresa!',
+    price: 0,
+    rent: [],
+    color: DEFAULT_SURPRISE_COLOR,
+    group: 'surprise',
+    houses: 0,
+    position: 2,
+    mortgaged: false,
+    type: 'surprise' as PropertyType
+  },
+  {
     id: 'property-3',
     name: 'San Pedro de Macorís',
     price: 60,
@@ -65,8 +52,30 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
-  
-  // Light Blue
+  {
+    id: 'box-1', 
+    name: 'Caja de Comunidad',
+    price: 0,
+    rent: [],
+    group: 'box',
+    color: DEFAULT_BOX_COLOR,
+    houses: 0,
+    position: 4,
+    mortgaged: false,
+    type: 'box' as PropertyType
+  },
+  {
+    id: 'railroad-5',
+    name: 'Puerto de Haina',
+    price: 200,
+    rent: [25, 50, 100, 200],
+    color: 'railroad',
+    group: 'railroad',
+    houses: 0,
+    position: 5,
+    mortgaged: false,
+    type: 'railroad' as PropertyType
+  },
   {
     id: 'property-6',
     name: 'Puerto Plata',
@@ -80,6 +89,18 @@ export const dominicanProperties: Property[] = [
     type: 'property' as PropertyType
   },
   {
+    id: 'surprise-2',
+    name: '¡Sorpresa!',
+    price: 0,
+    rent: [],
+    color: DEFAULT_SURPRISE_COLOR,
+    group: 'surprise',
+    houses: 0,
+    position: 7,
+    mortgaged: false,
+    type: 'surprise' as PropertyType
+  },
+  {
     id: 'property-8',
     name: 'La Romana',
     price: 100,
@@ -91,18 +112,7 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
-  {
-    id: 'property-9',
-    name: 'Samaná',
-    price: 120,
-    rent: [8, 40, 100, 300, 450, 600],
-    color: '#AAE0FA',
-    group: 'light-blue',
-    houses: 0,
-    position: 9,
-    mortgaged: false,
-    type: 'property' as PropertyType
-  },
+  // JAIL corner
   {
     id: 'jail',
     name: 'Cárcel / Solo Visitando',
@@ -111,24 +121,11 @@ export const dominicanProperties: Property[] = [
     group: 'utility',
     color: 'gray',
     houses: 0,
-    position: 10,
+    position: 9,
     mortgaged: false,
     type: 'utility' as PropertyType
   },
-  {
-    id: 'go-jail',
-    name: 'Ve a la Cárcel',
-    price: 0,
-    rent: [],
-    color: 'gray',
-    group: 'utility',
-    houses: 0,
-    position: 30,
-    mortgaged: false,
-    type: 'utility' as PropertyType
-  },
-  
-  // Pink
+  // Second side (positions 11-18)
   {
     id: 'property-11',
     name: 'Las Terrenas',
@@ -140,6 +137,18 @@ export const dominicanProperties: Property[] = [
     position: 11,
     mortgaged: false,
     type: 'property' as PropertyType
+  },
+  {
+    id: 'utility-12',
+    name: 'Empresa Eléctrica Dominicana',
+    price: 150,
+    rent: [4, 10],
+    color: 'utility',
+    group: 'utility',
+    houses: 0,
+    position: 12,
+    mortgaged: false,
+    type: 'utility' as PropertyType
   },
   {
     id: 'property-13',
@@ -165,8 +174,18 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
-  
-  // Orange
+  {
+    id: 'railroad-15',
+    name: 'Puerto de San Pedro',
+    price: 200,
+    rent: [25, 50, 100, 200],
+    color: 'railroad',
+    group: 'railroad',
+    houses: 0,
+    position: 15,
+    mortgaged: false,
+    type: 'railroad' as PropertyType
+  },
   {
     id: 'property-16',
     name: 'Santo Domingo Norte',
@@ -180,6 +199,18 @@ export const dominicanProperties: Property[] = [
     type: 'property' as PropertyType
   },
   {
+    id: 'box-2',
+    name: 'Caja de Comunidad',
+    price: 0,
+    rent: [],
+    group: 'box',
+    color: DEFAULT_BOX_COLOR,
+    houses: 0,
+    position: 17,
+    mortgaged: false,
+    type: 'box' as PropertyType
+  },
+  {
     id: 'property-18',
     name: 'Santo Domingo Este',
     price: 180,
@@ -191,6 +222,7 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
+  // PARKING corner
   {
     id: 'parking',
     name: 'Parqueo Gratuito',
@@ -199,24 +231,11 @@ export const dominicanProperties: Property[] = [
     color: 'green',
     group: 'utility',
     houses: 0,
-    position: 20,
+    position: 19,
     mortgaged: false,
     type: 'utility' as PropertyType
   },
-  {
-    id: 'property-19',
-    name: 'Santo Domingo Oeste',
-    price: 200,
-    rent: [16, 80, 220, 600, 800, 1000],
-    color: '#F7941D',
-    group: 'orange',
-    houses: 0,
-    position: 19,
-    mortgaged: false,
-    type: 'property' as PropertyType
-  },
-  
-  // Red
+  // Third side (positions 21-28)
   {
     id: 'property-21',
     name: 'Jarabacoa',
@@ -228,6 +247,18 @@ export const dominicanProperties: Property[] = [
     position: 21,
     mortgaged: false,
     type: 'property' as PropertyType
+  },
+  {
+    id: 'surprise-3',
+    name: '¡Sorpresa!',
+    price: 0,
+    rent: [],
+    color: DEFAULT_SURPRISE_COLOR,
+    group: 'surprise',
+    houses: 0,
+    position: 22,
+    mortgaged: false,
+    type: 'surprise' as PropertyType
   },
   {
     id: 'property-23',
@@ -253,8 +284,18 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
-  
-  // Yellow
+  {
+    id: 'railroad-25',
+    name: 'Puerto de Puerto Plata',
+    price: 200,
+    rent: [25, 50, 100, 200],
+    color: 'railroad',
+    group: 'railroad',
+    houses: 3,
+    position: 25,
+    mortgaged: false,
+    type: 'railroad' as PropertyType
+  },
   {
     id: 'property-26',
     name: 'San Juan de la Maguana',
@@ -280,19 +321,31 @@ export const dominicanProperties: Property[] = [
     type: 'property' as PropertyType
   },
   {
-    id: 'property-29',
-    name: 'Pedernales',
-    price: 280,
-    rent: [24, 120, 360, 850, 1025, 1200],
-    color: '#FFF200',
-    group: 'yellow',
+    id: 'utility-28',
+    name: 'Acueducto Dominicano',
+    price: 150,
+    rent: [4, 10],
+    color: 'utility',
+    group: 'utility',
+    houses: 0,
+    position: 28,
+    mortgaged: false,
+    type: 'utility' as PropertyType
+  },
+  // GO TO JAIL corner
+  {
+    id: 'go-jail',
+    name: 'Ve a la Cárcel',
+    price: 0,
+    rent: [],
+    color: 'gray',
+    group: 'utility',
     houses: 0,
     position: 29,
     mortgaged: false,
-    type: 'property' as PropertyType
+    type: 'utility' as PropertyType
   },
-  
-  // Green
+  // Fourth side (positions 31-38)
   {
     id: 'property-31',
     name: 'Juan Dolio',
@@ -318,6 +371,18 @@ export const dominicanProperties: Property[] = [
     type: 'property' as PropertyType
   },
   {
+    id: 'box-3',
+    name: 'Caja de Comunidad',
+    price: 0,
+    rent: [],
+    group: 'box',
+    color: DEFAULT_BOX_COLOR,
+    houses: 0,
+    position: 33,
+    mortgaged: false,
+    type: 'box' as PropertyType
+  },
+  {
     id: 'property-34',
     name: 'Bayahibe',
     price: 320,
@@ -329,8 +394,30 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
-  
-  // Dark Blue
+  {
+    id: 'railroad-35',
+    name: 'Aeropuerto Las Américas',
+    price: 200,
+    rent: [25, 50, 100, 200],
+    color: 'railroad',
+    group: 'railroad',
+    houses: 0,
+    position: 35,
+    mortgaged: false,
+    type: 'railroad' as PropertyType
+  },
+  {
+    id: 'surprise-4',
+    name: '¡Sorpresa!',
+    price: 0,
+    rent: [],
+    color: DEFAULT_SURPRISE_COLOR,
+    group: 'surprise',
+    houses: 0,
+    position: 36,
+    mortgaged: false,
+    type: 'surprise' as PropertyType
+  },
   {
     id: 'property-37',
     name: 'Zona Colonial',
@@ -351,84 +438,8 @@ export const dominicanProperties: Property[] = [
     color: '#0055A4',
     group: 'dark-blue',
     houses: 0,
-    position: 39,
+    position: 38,
     mortgaged: false,
     type: 'property' as PropertyType
-  },
-  
-  // Railroads
-  {
-    id: 'railroad-5',
-    name: 'Puerto de Haina',
-    price: 200,
-    rent: [25, 50, 100, 200],
-    color: 'railroad',
-    group: 'railroad',
-    houses: 0,
-    position: 5,
-    mortgaged: false,
-    type: 'railroad' as PropertyType
-  },
-  {
-    id: 'railroad-15',
-    name: 'Puerto de San Pedro',
-    price: 200,
-    rent: [25, 50, 100, 200],
-    color: 'railroad',
-    group: 'railroad',
-    houses: 0,
-    position: 15,
-    mortgaged: false,
-    type: 'railroad' as PropertyType
-  },
-  {
-    id: 'railroad-25',
-    name: 'Puerto de Puerto Plata',
-    price: 200,
-    rent: [25, 50, 100, 200],
-    color: 'railroad',
-    group: 'railroad',
-    houses: 3,
-    position: 25,
-    mortgaged: false,
-    type: 'railroad' as PropertyType
-  },
-  {
-    id: 'railroad-35',
-    name: 'Aeropuerto Las Américas',
-    price: 200,
-    rent: [25, 50, 100, 200],
-    color: 'railroad',
-    group: 'railroad',
-    houses: 0,
-    position: 35,
-    mortgaged: false,
-    type: 'railroad' as PropertyType
-  },
-  
-  // Utilities
-  {
-    id: 'utility-12',
-    name: 'Empresa Eléctrica Dominicana',
-    price: 150,
-    rent: [4, 10],
-    color: 'utility',
-    group: 'utility',
-    houses: 0,
-    position: 12,
-    mortgaged: false,
-    type: 'utility' as PropertyType
-  },
-  {
-    id: 'utility-28',
-    name: 'Acueducto Dominicano',
-    price: 150,
-    rent: [4, 10],
-    color: 'utility',
-    group: 'utility',
-    houses: 0,
-    position: 28,
-    mortgaged: false,
-    type: 'utility' as PropertyType
   }
 ];
