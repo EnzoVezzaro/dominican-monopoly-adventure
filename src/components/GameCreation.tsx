@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Palmtree, Users, Link } from 'lucide-react';
 
 interface GameCreationProps {
@@ -13,24 +13,15 @@ interface GameCreationProps {
 const GameCreation: React.FC<GameCreationProps> = ({ onCreateGame }) => {
   const [playerName, setPlayerName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(4);
-  const { toast } = useToast();
 
   const handleCreateGame = () => {
     if (!playerName.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter your name to create a game",
-        variant: "destructive"
-      });
+      toast.error("Please enter your name to create a game");
       return;
     }
 
     if (maxPlayers < 2 || maxPlayers > 10) {
-      toast({
-        title: "Invalid player count",
-        description: "Number of players must be between 2 and 10",
-        variant: "destructive"
-      });
+      toast.error("Number of players must be between 2 and 10");
       return;
     }
 

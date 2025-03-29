@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { LogIn, Users } from 'lucide-react';
 
 interface JoinGameProps {
@@ -14,15 +14,10 @@ interface JoinGameProps {
 
 const JoinGame: React.FC<JoinGameProps> = ({ gameId, onJoinGame }) => {
   const [playerName, setPlayerName] = useState('');
-  const { toast } = useToast();
 
   const handleJoinGame = () => {
     if (!playerName.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter your name to join the game",
-        variant: "destructive"
-      });
+      toast.error("Please enter your name to join the game");
       return;
     }
 

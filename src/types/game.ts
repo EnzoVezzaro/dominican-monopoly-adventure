@@ -80,9 +80,12 @@ export interface Connection {
 }
 
 export interface NotificationState {
-  title: string;
-  description: string;
-  variant?: 'default' | 'destructive';
+  message: string;
+  description?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export type GameEventPayload = 

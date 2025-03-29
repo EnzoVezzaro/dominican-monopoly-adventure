@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Player, GameState, GameEvent, Connection, Property, NotificationState } from '../types/game';
 import PeerService from '../services/PeerService';
 import { dominicanProperties } from '../data/dominican-properties';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { boxCards, surpriseCards } from '@/data/special-cards';
 
 const INITIAL_MONEY = 1500;
@@ -18,7 +18,6 @@ export const useGame = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isCreator, setIsCreator] = useState(false);
-  const { toast } = useToast();
   const gameStateRef = useRef(gameState);
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -68,11 +67,7 @@ export const useGame = () => {
       return peerId;
     } catch (error) {
       console.error('Failed to initialize peer:', error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to initialize peer-to-peer connection",
-        variant: "destructive"
-      });
+      toast.error("Failed to initialize peer-to-peer connection");
       return null;
     }
   }, [toast]);
@@ -159,10 +154,7 @@ export const useGame = () => {
         return newState;
       });
       
-      toast({
-        title: "Player disconnected",
-        description: "A player has left the game"
-      });
+      toast.error("A player has left the game");
     });
     
     PeerService.on('join-game', (data: { id: string; name: string }) => { // Added type
@@ -174,10 +166,7 @@ export const useGame = () => {
           return [...prev, { id: data.id, name: data.name }];
       });
       
-      toast({
-        title: "Player joined",
-        description: `${data.name} has joined the game`
-      });
+      toast.success(`${data.name} has joined the game`);
       
       // Send the current state ONLY to the new player
       // Use gameStateRef.current to send the absolute latest state
@@ -225,12 +214,7 @@ export const useGame = () => {
 
       PeerService.on('notify-users', (state: NotificationState) => { // Added type
         console.log('Client received notification:', state);
-        // Ensure properties have owner field if missing from host state
-        toast({
-          title: state.title,
-          description: state.description,
-          variant: state.variant
-        });
+        toast.success(state.description);
       });
       
       // Client listens for the start-game signal (though full state is also sent)
@@ -247,11 +231,7 @@ export const useGame = () => {
       return peerId;
     } catch (error) {
       console.error('Failed to join game:', error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to join the game. The game may not exist or has already started.",
-        variant: "destructive"
-      });
+      toast.error("Failed to join the game. The game may not exist or has already started.");
       return null;
     }
   }, [initializePeer, toast]);
@@ -323,15 +303,12 @@ export const useGame = () => {
       payload: {}
     });
     
-    toast({
-      title: "Game Started",
-      description: `Game started with ${players.length} players`
-    });
+    toast.success(`Game started with ${players.length} players`);
     
     PeerService.sendToAll({
       type: 'notify-users',
       payload: {
-        title: "Game Started",
+        message: "Game Started",
         description: `Game started with ${players.length} players`
       }
     });
@@ -354,13 +331,13 @@ export const useGame = () => {
 
     if (!isMyTurn) {
       console.log("Not your turn to roll dice.");
-      toast({ title: "Wait!", description: "It's not your turn.", variant: "destructive" });
+      toast.error("It's not your turn.");
       return;
     }
 
     if (currentState.hasDiceRolled) {
       console.log("Already rolled this turn.");
-      toast({ title: "Oops!", description: "You've already rolled the dice this turn.", variant: "destructive" });
+      toast.error("You've already rolled the dice this turn.");
       return;
     }
     
@@ -394,15 +371,12 @@ export const useGame = () => {
     });
 
     // Local toast for the player who rolled
-    toast({ 
-      title: "You rolled!",
-      description: `You rolled ${dice1} + ${dice2} = ${diceSum}`
-    });
+    toast.success(`You rolled ${dice1} + ${dice2} = ${diceSum}`);
 
     PeerService.sendToAll({
       type: 'notify-users',
       payload: {
-        title: `${currentPlayer.name} rolled!`,
+        message: `${currentPlayer.name} rolled!`,
         description: `${currentPlayer.name} rolled the dice ${dice1} + ${dice2} = ${diceSum}`
       }
     });    
@@ -422,13 +396,13 @@ export const useGame = () => {
 
     if (!isMyTurn) {
       console.log("Not your turn to end.");
-      toast({ title: "Wait!", description: "It's not your turn.", variant: "destructive" });
+      toast.error("It's not your turn.");
       return;
     }
 
     if (!currentState.hasDiceRolled) {
       console.log("Must roll dice before ending turn");
-      toast({ title: "Hold on!", description: "You need to roll the dice first.", variant: "destructive" });
+      toast.error("You need to roll the dice first.");
       return;
     }
     
@@ -454,7 +428,7 @@ export const useGame = () => {
     PeerService.sendToAll({
       type: 'notify-users',
       payload: {
-        title: "Turn Ended",
+        message: "Turn Ended",
         description: `${currentPlayer.name} Has Ended his turn`
       }
     });  
@@ -474,13 +448,13 @@ export const useGame = () => {
     
     if (!isMyTurn) {
       console.log("Not your turn to buy property.");
-      toast({ title: "Wait!", description: "It's not your turn.", variant: "destructive" });
+      toast.error("It's not your turn.");
       return;
     }
 
     if (!currentState.hasDiceRolled) {
       console.log("Cannot buy property before rolling dice.");
-       toast({ title: "Hold on!", description: "Roll the dice first.", variant: "destructive" });
+       toast.error("Roll the dice first.");
       return;
     }
     
@@ -496,13 +470,13 @@ export const useGame = () => {
     if (property.owner) {
         console.log("Property already owned.");
         const ownerName = currentState.players.find(p => p.id === property.owner)?.name || 'someone';
-        toast({ title: "Oops!", description: `${property.name} is already owned by ${ownerName}.` });
+        toast.success(`${property.name} is already owned by ${ownerName}.`);
         return;
     }
 
     if (currentPlayer.money < property.price) {
         console.log("Not enough money.");
-        toast({ title: "Not enough funds!", description: `You need $${property.price} to buy ${property.name}.`, variant: "destructive" });
+        toast.error(`You need $${property.price} to buy ${property.name}.`);
         return;
     }
     
@@ -533,16 +507,13 @@ export const useGame = () => {
     PeerService.sendToAll({
       type: 'notify-users',
       payload: {
-        title: "Property Purchased",
+        message: "Property Purchased",
         description: `${currentPlayer.name} bought ${property.name} for $${property.price}`
       }
     });
 
     // Local toast
-    toast({
-      title: "Property Purchased!",
-      description: `You bought ${property.name} for $${property.price}`
-    });
+    toast.success(`You bought ${property.name} for $${property.price}`);
 
   }, [toast]); // Dependencies: toast. gameState is accessed via ref.
 
@@ -586,11 +557,11 @@ export const useGame = () => {
       setGameState(stateAfterRoll); // Creator updates state
       PeerService.sendToAll({ type: 'game-state', payload: stateAfterRoll }); // Creator broadcasts
       const rollMessage = `${botPlayer.name} rolled ${dice1} + ${dice2} = ${diceSum}`;
-      toast({ title: "Bot Roll", description: rollMessage });
+      toast.success(rollMessage);
       PeerService.sendToAll({
         type: 'notify-users',
         payload: {
-          title: "Bot Roll",
+          message: "Bot Roll",
           description: rollMessage
         }
       });
@@ -627,25 +598,25 @@ export const useGame = () => {
              };
              setGameState(stateAfterAction); // Creator updates state
              PeerService.sendToAll({ type: 'game-state', payload: stateAfterAction }); // Creator broadcasts
-             toast({ title: "Bot Purchase", description: `${botPlayerAfterRoll.name} bought ${propertyAtPosition.name}` });
+             toast.success(`${botPlayerAfterRoll.name} bought ${propertyAtPosition.name}`);
              console.log(`Bot ${botPlayer.name} bought ${propertyAtPosition.name}`);
              didBotBuyProperty = true;
              PeerService.sendToAll({
               type: 'notify-users',
               payload: {
-                title: "Bot Purchase",
+                message: "Bot Purchase",
                 description: `${botPlayerAfterRoll.name} bought ${propertyAtPosition.name}`
               }
-            });  
+              });  
           }
         } else {
-           toast({ title: "Bot Decision", description: `${botPlayerAfterRoll.name} declined to buy ${propertyAtPosition.name}` });
+            toast.success(`${botPlayerAfterRoll.name} declined to buy ${propertyAtPosition.name}`);
             PeerService.sendToAll({
-              type: 'notify-users',
-              payload: {
-                title: "Bot Decision",
-                description: `${botPlayerAfterRoll.name} declined to buy ${propertyAtPosition.name}`
-              }
+            type: 'notify-users',
+            payload: {
+              message: "Bot Decision",
+              description: `${botPlayerAfterRoll.name} declined to buy ${propertyAtPosition.name}`
+            }
             });
            console.log(`Bot ${botPlayer.name} declined ${propertyAtPosition.name}`);
         }
@@ -667,22 +638,22 @@ export const useGame = () => {
             if (botMoney >= rentAmount) {
               botMoney -= rentAmount;
               ownerMoney += rentAmount;
-              toast({ title: "Rent Paid", description: `${botPlayerAfterRoll.name} paid $${rentAmount} rent to ${owner.name} for ${propertyAtPosition.name}` });
+              toast.success(`${botPlayerAfterRoll.name} paid $${rentAmount} rent to ${owner.name} for ${propertyAtPosition.name}`);
               PeerService.sendToAll({
                 type: 'notify-users',
                 payload: {
-                  title: "Rent Paid",
+                  message: "Rent Paid",
                   description: `${botPlayerAfterRoll.name} paid $${rentAmount} rent to ${owner.name} for ${propertyAtPosition.name}`
                 }
               });
             } else {
               // Handle bankruptcy scenario (simplified: pay what you can, owner gets less)
               ownerMoney += botMoney;
-              toast({ title: "Partial Rent Paid", description: `${botPlayerAfterRoll.name} couldn't afford full rent, paid $${botMoney} to ${owner.name}. (Bankruptcy logic needed)`, variant: "destructive" });
+              toast.error(`${botPlayerAfterRoll.name} couldn't afford full rent, paid $${botMoney} to ${owner.name}. (Bankruptcy logic needed)`);
               PeerService.sendToAll({
                 type: 'notify-users',
                 payload: {
-                  title: "Rent Paid",
+                  message: "Rent Paid",
                   description: `${botPlayerAfterRoll.name} couldn't afford full rent, paid $${botMoney} to ${owner.name}. (Bankruptcy logic needed)`
                 }
               });
@@ -719,12 +690,12 @@ export const useGame = () => {
       };
       setGameState(finalStateForTurn); // Creator updates state
       PeerService.sendToAll({ type: 'game-state', payload: finalStateForTurn }); // Creator broadcasts
-      toast({ title: "Bot Turn End", description: `${botPlayer.name} ended their turn.` });
+      toast.success(`${botPlayer.name} ended their turn.`);
       console.log(`Bot ${botPlayer.name} ended turn. Next player: ${nextPlayerIndex}`);
       PeerService.sendToAll({
         type: 'notify-users',
         payload: {
-          title: "Bot Turn End",
+          message: "Bot Turn End",
           description: `${botPlayer.name} ended their turn.`
         }
       });
@@ -734,7 +705,7 @@ export const useGame = () => {
     
     executeBotTurn().catch(err => {
        console.error(`Error during bot ${botPlayerIndex} turn:`, err);
-       toast({ title: "Bot Error", description: `Error during ${gameStateRef.current?.players[botPlayerIndex]?.name}'s turn.`, variant: "destructive" });
+       toast.error(`Error during ${gameStateRef.current?.players[botPlayerIndex]?.name}'s turn.`);
        // Attempt to recover by ending the turn forcefully
        const currentState = getCurrentGameState();
        if (currentState && currentState.currentPlayer === botPlayerIndex) {
@@ -923,7 +894,7 @@ export const useGame = () => {
           PeerService.sendToAll({
             type: 'notify-users',
             payload: {
-              title: "Game Updated",
+              message: "Game Updated",
               description: `Broadcasting corrected state: ${finalCorrectedState}`
             }
           });
@@ -1007,18 +978,15 @@ export const useGame = () => {
     
     // Then send notification with player name and new position
     PeerService.sendToAll({
-      type: 'notify-users',
-      payload: {
-        title: "Player Moved",
-        description: `${player.name} moved to position ${newPosition}`
-      }
+            type: 'notify-users',
+            payload: {
+              message: "Player Moved",
+              description: `${player.name} moved to position ${newPosition}`
+            }
     });
 
     // Local toast
-    toast({
-      title: "You Moved",
-      description: `You moved to position ${newPosition}`
-    });
+    toast.success(`You moved to position ${newPosition}`);
   }, [toast]);
 
   const onUpdateMoney = useCallback((playerId: string, amount: number) => {
@@ -1042,17 +1010,14 @@ export const useGame = () => {
     setGameState(updatedState);
     PeerService.sendToAll({ type: 'game-state', payload: updatedState });
 
-    toast({
-      title: amount >= 0 ? "Money Added" : "Money Deducted",
-      description: `$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`
-    });
+    toast.success(`$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`);
 
     PeerService.sendToAll({
-      type: 'notify-users',
-      payload: {
-        title: amount >= 0 ? "Money Added" : "Money Deducted",
-        description: `$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`
-      }
+            type: 'notify-users',
+            payload: {
+              message: amount >= 0 ? "Money Added" : "Money Deducted",
+              description: `$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`
+            }
     });
   }, [toast]);
 
@@ -1077,17 +1042,14 @@ export const useGame = () => {
     setGameState(updatedState);
     PeerService.sendToAll({ type: 'game-state', payload: updatedState });
 
-    toast({
-      title: jailed ? "Player Jailed" : "Player Released",
-      description: `${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`
-    });
+    toast.success(`${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`);
 
     PeerService.sendToAll({
-      type: 'notify-users',
-      payload: {
-        title: jailed ? "Player Jailed" : "Player Released",
-        description: `${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`
-      }
+            type: 'notify-users',
+            payload: {
+              message: jailed ? "Player Jailed" : "Player Released",
+              description: `${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`
+            }
     });
   }, [toast]);
 
@@ -1119,17 +1081,14 @@ export const useGame = () => {
     setGameState(updatedState);
     PeerService.sendToAll({ type: 'game-state', payload: updatedState });
 
-    toast({
-      title: "Jail Card Transferred",
-      description: `Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`
-    });
+    toast.success(`Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`);
 
     PeerService.sendToAll({
-      type: 'notify-users',
-      payload: {
-        title: 'Jail Card Transferred',
-        description: `Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`
-      }
+            type: 'notify-users',
+            payload: {
+              message: 'Jail Card Transferred',
+              description: `Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`
+            }
     });
   }, [toast]);
 

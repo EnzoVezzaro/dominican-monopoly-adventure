@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Clipboard, CopyCheck, Users, Play, Bot } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Connection } from '@/types/game';
 
@@ -35,7 +35,6 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
-  const { toast } = useToast();
 
   const gameUrl = `${window.location.origin}?game=${gameId}`;
   const humanPlayerCount = connections.length + 1; // +1 for the current player
@@ -44,10 +43,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({
   const copyGameLink = () => {
     navigator.clipboard.writeText(gameUrl);
     setCopied(true);
-    toast({
-      title: "Link copied!",
-      description: "Share it with your friends to join the game",
-    });
+    toast.success("Share it with your friends to join the game");
     
     setTimeout(() => setCopied(false), 2000);
   };
