@@ -10,7 +10,7 @@ import { GameState, Player, Property } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
 import PeerService from '@/services/PeerService';
 import PropertyActionCard from './PropertyActionCard';
-import { DEFAULT_RAILROAD_COLOR, DEFAULT_UTILITY_COLOR, getPropertyColor } from '@/lib/colors';
+import { getPropertyColor } from '@/lib/colors';
 import { CardEffectAction, handleCardEffect } from '@/lib/card-effects';
 
 interface GameBoardProps {
@@ -36,175 +36,93 @@ const Board = ({
   onSpaceClick: (property: Property | null, position: number) => void
 }) => {
   const boardRef = useRef<THREE.Group>(null);
-  const [texturesLoaded, setTexturesLoaded] = useState(false);
-  
-  // Define texture loaders with error handling
-  const textureLoader = new THREE.TextureLoader();
-  const boardTexture = textureLoader.load('/board-texture.jpg', 
-    () => setTexturesLoaded(true),
-    undefined, 
-    () => textureLoader.load('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==')
+  const fallbackTexture = new THREE.TextureLoader().load(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
   );
   
-  // Load token models
-  const ambulanceToken = useFBX('/assets/3d/Players/Ambulance.fbx');
-  const busToken = useFBX('/assets/3d/Players/Bus_1.fbx');
-  const taxiToken = useFBX('/assets/3d/Players/Taxi.fbx');
-  const carToken = useFBX('/assets/3d/Players/Car_1_1.fbx');
-  const truckToken = useFBX('/assets/3d/Players/Main_Truck_1.fbx');
-  const policeToken = useFBX('/assets/3d/Players/Police.fbx');
-  
-  // Load building models
+  const boardTexture = new THREE.TextureLoader().load('/board-texture.jpg') || fallbackTexture;
+  const boardSpaces = [];
+  const boardSize = 20;  // Double the board size
+  const spaceSize = 2;   // Double the space size
+
   const houseModel = useFBX('/assets/3d/Buildings/Building_1.fbx');
-  const houseModel2 = useFBX('/assets/3d/Buildings/Building_5.fbx');
+  const houseModel2 = useFBX('/assets/3d/Buildings/Building_2.fbx');
+  const houseModel3 = useFBX('/assets/3d/Buildings/Building_4.fbx');
+  const houseModel4 = useFBX('/assets/3d/Buildings/Building_5.fbx');
+  const houseModel5 = useFBX('/assets/3d/Buildings/Building_6.fbx');
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
   
-  // Board dimensions
-  const boardSize = 22;
-  const spaceSize = 2;
-
-  // Get property color based on its group
-  const getPropertyColor = (property: Property | undefined) => {
-    if (!property) return "#f0f0f0";
-    if (property.group === "railroad") return DEFAULT_RAILROAD_COLOR;
-    if (property.group === "utility") return DEFAULT_UTILITY_COLOR;
-    return property.color || "#f0f0f0";
-  };
-  
-  // Get corner space design (Go, Jail, Free Parking, Go to Jail)
-  const getCornerSpace = (position: number) => {
-    switch(position) {
-      case 0: return { color: "#f0f0f0", text: "GO", textColor: "red" };
-      case 10: return { color: "#f0f0f0", text: "JAIL", textColor: "black" };
-      case 20: return { color: "#f0f0f0", text: "FREE PARKING", textColor: "red" };
-      case 30: return { color: "#f0f0f0", text: "GO TO JAIL", textColor: "black" };
-      default: return { color: "#f0f0f0", text: "", textColor: "black" };
-    }
-  };
-  
-  // Create token model based on player index
-  const getPlayerToken = (index: number) => {
-    switch(index % 6) {
-      case 0: return carToken.clone();
-      case 1: return ambulanceToken.clone();
-      case 2: return busToken.clone();
-      case 3: return truckToken.clone();
-      case 4: return taxiToken.clone();
-      default: return policeToken.clone();
-    }
-  };
-
-  const boardSpaces = [];
-  
-  // Create board spaces
   for (let i = 0; i < 40; i++) {
     let x = 0, z = 0;
     const cornerOffset = boardSize / 2 - spaceSize / 2;
-    
-    // Position calculation for spaces around the board
     if (i < 10) { x = cornerOffset - i * spaceSize; z = cornerOffset; }
     else if (i < 20) { x = -cornerOffset; z = cornerOffset - (i - 10) * spaceSize; }
     else if (i < 30) { x = -cornerOffset + (i - 20) * spaceSize; z = -cornerOffset; }
     else { x = cornerOffset; z = -cornerOffset + (i - 30) * spaceSize; }
     
     const property = properties.find(p => p.position === i);
-    const isCorner = [0, 10, 20, 30].includes(i);
-    const cornerInfo = isCorner ? getCornerSpace(i) : null;
-    const color = cornerInfo ? cornerInfo.color : getPropertyColor(property);
+    const color = getPropertyColor(property);
     
-    // Create card-like space with colored band at top (like Monopoly properties)
     boardSpaces.push(
       <group 
         key={`space-${i}`} 
         position={[x, 0, z]}
         onClick={() => onSpaceClick(property, i)}
+        rotation={[0, 
+          i < 10 ? 0 : 
+          i < 20 ? -Math.PI/2 : 
+          i < 30 ? Math.PI : 
+          Math.PI/2, 
+        0]}
       >
-        {/* Base space */}
-        <mesh position={[0, 0, 0]} receiveShadow>
-          <boxGeometry args={[spaceSize, 0.1, spaceSize]} />
-          <meshStandardMaterial color="#f9f9f9" />
+        <mesh position={[0, 0, -0.7]} receiveShadow>
+          <boxGeometry args={[spaceSize, 0.1, 0.6]} />
+          <meshStandardMaterial color={color} />
         </mesh>
-        
-        {/* Colored property band (for non-corner spaces) */}
-        {!isCorner && property && property.group && (
-          <mesh position={[0, 0.05, -0.3]} receiveShadow>
-            <boxGeometry args={[spaceSize, 0.1, 0.6]} />
-            <meshStandardMaterial color={color} />
-          </mesh>
-        )}
-        
-        {/* Corner space design */}
-        {isCorner && cornerInfo && (
-          <Text
-            position={[0, 0.2, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.4}
-            color={cornerInfo.textColor}
-            anchorX="center"
-            anchorY="middle"
-          >
-            {cornerInfo.text}
-          </Text>
-        )}
-        
-        {/* Property name */}
-        {!isCorner && (
-          <Text
-            position={[0, 0.15, 0.2]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.2}
-            color="black"
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={1.8}
-          >
-            {property?.name || `Space ${i}`}
-          </Text>
-        )}
-        
-        {/* Property price */}
-        {property && property.price && (
-          <Text
-            position={[0, 0.15, 0.6]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.15}
-            color="black"
-            anchorX="center"
-            anchorY="middle"
-          >
-            ${property.price}
-          </Text>
-        )}
-        
-        {/* Houses and hotels */}
+        <Text
+          position={[0, 0.1, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.2}
+          color="black"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {property ? property.name.substring(0, 10) : `Space ${i}`}
+        </Text>
         {property?.houses > 0 && (
           <>
-            {property.houses < 5 ? (
-              // Houses
-              Array.from({length: property.houses}).map((_, idx) => {
-                const spacing = 0.35;
-                const xOffset = (idx - (property.houses - 1) / 2) * spacing;
-                const model = idx % 2 === 0 ? houseModel.clone() : houseModel2.clone();
-                model.scale.set(0.02, 0.02, 0.02);
-                
-                return (
-                  <primitive
-                    key={`house-${i}-${idx}`}
-                    object={model}
-                    position={[xOffset, 0.2, -0.3]}
-                    rotation={[0, Math.PI/2, 0]}
-                    castShadow
-                  />
-                );
-              })
-            ) : (
-              // Hotel
+            {Array.from({length: Math.min(property.houses, 4)}).map((_, idx) => {
+              const spacing = 0.8; // Increased from 0.5 to 0.8 for more space between buildings
+              const xOffset = (idx - (Math.min(property.houses, 4) - 1) / 2) * spacing;
+              const zOffset = idx % 2 === 0 ? 0 : 0.4; // Increased from 0.3 to 0.4 for more depth variation
+              const model = idx % 2 === 0 ? houseModel.clone() : houseModel4.clone();
+              
+              // Apply consistent scaling based on house count
+              const baseScale = 0.03; // Further reduced from 0.15 to make buildings smaller
+              let scaleVariation = 0;
+              if (property.houses === 2) {
+                scaleVariation = idx % 2 === 0 ? 0.02 : 0.01; // Smaller variation
+              } else if (property.houses > 2) {
+                scaleVariation = idx * 0.003; // Smaller variation
+              }
+              const finalScale = baseScale + scaleVariation;
+              model.scale.set(finalScale, finalScale, finalScale);
+              
+              return (
+                <primitive
+                  key={`house-${i}-${idx}`}
+                  object={model}
+                  position={[xOffset, 0, zOffset]}
+                  rotation={[0, Math.PI/2, 0]}
+                />
+              );
+            })}
+            {property.houses >= 5 && (
               <primitive
                 object={hotelModel.clone()}
-                position={[0, 0.2, -0.3]}
+                position={[0, 0, 0]}
                 rotation={[0, Math.PI/2, 0]}
-                scale={[0.025, 0.025, 0.025]}
-                castShadow
+                scale={[0.001, 0.001, 0.001]}
               />
             )}
           </>
@@ -212,51 +130,7 @@ const Board = ({
       </group>
     );
   }
-  
-  // Create player tokens
-  const playerTokens = players.map((player, index) => {
-    const position = player.position;
-    let x = 0, z = 0;
-    const cornerOffset = boardSize / 2 - spaceSize / 2;
-    
-    // Position calculation for player tokens
-    if (position < 10) { x = cornerOffset - position * spaceSize; z = cornerOffset; }
-    else if (position < 20) { x = -cornerOffset; z = cornerOffset - (position - 10) * spaceSize; }
-    else if (position < 30) { x = -cornerOffset + (position - 20) * spaceSize; z = -cornerOffset; }
-    else { x = cornerOffset; z = -cornerOffset + (position - 30) * spaceSize; }
-    
-    // Offset tokens so they don't overlap
-    x += (index % 3) * 0.3 - 0.3;
-    z += Math.floor(index / 3) * 0.3 - 0.3;
-    
-    const tokenModel = getPlayerToken(index);
-    tokenModel.scale.set(0.05, 0.05, 0.05);
-    
-    if (currentPlayer === index) {
-      // Highlight current player's token
-      return (
-        <group key={`player-${player.id}`} position={[x, 0.4, z]}>
-          <primitive object={tokenModel} castShadow />
-          <pointLight 
-            position={[0, 0.5, 0]}
-            color={player.color}
-            intensity={5}
-            distance={2}
-          />
-        </group>
-      );
-    }
-    
-    return (
-      <primitive 
-        key={`player-${player.id}`} 
-        object={tokenModel}
-        position={[x, 0.4, z]}
-        castShadow
-      />
-    );
-  });
-  
+
   // Add center board logo - removed font property to avoid loading error
   const centerContent = (
     <group position={[0, 0.1, 0]}>
@@ -273,6 +147,30 @@ const Board = ({
     </group>
   );
   
+  const playerTokens = players.map((player, index) => {
+    const position = player.position;
+    let x = 0, z = 0;
+    const cornerOffset = boardSize / 2 - spaceSize / 2;
+    if (position < 10) { x = cornerOffset - position * spaceSize; z = cornerOffset; }
+    else if (position < 20) { x = -cornerOffset; z = cornerOffset - (position - 10) * spaceSize; }
+    else if (position < 30) { x = -cornerOffset + (position - 20) * spaceSize; z = -cornerOffset; }
+    else { x = cornerOffset; z = -cornerOffset + (position - 30) * spaceSize; }
+    
+    x += (index % 3) * 0.25 - 0.25;
+    z += Math.floor(index / 3) * 0.25 - 0.25;
+    
+    return (
+      <mesh key={`player-${player.id}`} position={[x, 0.4, z]} castShadow>
+        <sphereGeometry args={[0.4, 16, 16]} />
+        <meshStandardMaterial 
+          color={player.color} 
+          emissive={currentPlayer === index ? player.color : undefined}
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+    );
+  });
+  
   return (
     <group ref={boardRef}>
       {/* Board base */}
@@ -286,7 +184,6 @@ const Board = ({
         <boxGeometry args={[boardSize - spaceSize * 2, 0.1, boardSize - spaceSize * 2]} />
         <meshStandardMaterial color="#E6DDC6" />
       </mesh>
-      
       {boardSpaces}
       {playerTokens}
       {centerContent}
