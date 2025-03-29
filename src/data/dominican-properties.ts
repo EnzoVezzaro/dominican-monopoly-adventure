@@ -3,6 +3,17 @@ import { Property, PropertyType } from '../types/game';
 import { DEFAULT_SURPRISE_COLOR, DEFAULT_BOX_COLOR } from '../lib/colors';
 
 export const dominicanProperties: Property[] = [
+  {
+    id: 'go-space',
+    name: 'GO',
+    price: 0,
+    rent: [0],
+    color: 'white',
+    houses: 0,
+    position: 0,
+    mortgaged: false,
+    type: 'utility' as PropertyType
+  },
   // Special cards
   {
     id: 'surprise-1',
@@ -84,6 +95,17 @@ export const dominicanProperties: Property[] = [
     mortgaged: false,
     type: 'property' as PropertyType
   },
+  {
+    id: 'jail',
+    name: 'Cárcel / Solo Visitando',
+    price: 0,
+    rent: [],
+    color: 'gray',
+    houses: 0,
+    position: 10,
+    mortgaged: false,
+    type: 'utility' as PropertyType
+  },
   
   // Pink
   {
@@ -142,6 +164,17 @@ export const dominicanProperties: Property[] = [
     position: 18,
     mortgaged: false,
     type: 'property' as PropertyType
+  },
+  {
+    id: 'parking',
+    name: 'Parqueo Gratuito',
+    price: 0,
+    rent: [],
+    color: 'green',
+    houses: 0,
+    position: 20,
+    mortgaged: false,
+    type: 'utility' as PropertyType
   },
   {
     id: 'property-19',
@@ -279,7 +312,7 @@ export const dominicanProperties: Property[] = [
     rent: [50, 200, 600, 1400, 1700, 2000],
     color: '#0055A4',
     houses: 0,
-    position: 39,
+    position: 38,
     mortgaged: false,
     type: 'property' as PropertyType
   },

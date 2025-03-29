@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text, useTexture } from '@react-three/drei';
+import { OrbitControls, Text, useTexture, useFBX } from '@react-three/drei';
 import * as THREE from 'three';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,15 +54,23 @@ const Board = ({
   
   const boardTexture = textureLoadFailed ? fallbackTexture : new THREE.TextureLoader().load('/board-texture.jpg');
   const boardSpaces = [];
-  const boardSize = 10;
-  const spaceSize = 1;
+  const boardSize = 20;  // Double the board size
+  const spaceSize = 2;   // Double the space size
+
+  const houseModel = useFBX('/assets/3d/Buildings/Building_1.fbx');
+  const houseModel2 = useFBX('/assets/3d/Buildings/Building_2.fbx');
+  const houseModel3 = useFBX('/assets/3d/Buildings/Building_4.fbx');
+  const houseModel4 = useFBX('/assets/3d/Buildings/Building_5.fbx');
+  const houseModel5 = useFBX('/assets/3d/Buildings/Building_6.fbx');
+  const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
   
   for (let i = 0; i < 40; i++) {
     let x = 0, z = 0;
-    if (i < 10) { x = 5 - i * spaceSize; z = 5; }
-    else if (i < 20) { x = -5; z = 5 - (i - 10) * spaceSize; }
-    else if (i < 30) { x = -5 + (i - 20) * spaceSize; z = -5; }
-    else { x = 5; z = -5 + (i - 30) * spaceSize; }
+    const cornerOffset = boardSize / 2 - spaceSize / 2;
+    if (i < 10) { x = cornerOffset - i * spaceSize; z = cornerOffset; }
+    else if (i < 20) { x = -cornerOffset; z = cornerOffset - (i - 10) * spaceSize; }
+    else if (i < 30) { x = -cornerOffset + (i - 20) * spaceSize; z = -cornerOffset; }
+    else { x = cornerOffset; z = -cornerOffset + (i - 30) * spaceSize; }
     
     const property = properties.find(p => p.position === i);
     const color = getPropertyColor(property);
@@ -87,6 +95,44 @@ const Board = ({
         >
           {property ? property.name.substring(0, 10) : `Space ${i}`}
         </Text>
+        {property?.houses > 0 && (
+          <>
+            {Array.from({length: Math.min(property.houses, 4)}).map((_, idx) => {
+              const spacing = 0.8; // Increased from 0.5 to 0.8 for more space between buildings
+              const xOffset = (idx - (Math.min(property.houses, 4) - 1) / 2) * spacing;
+              const zOffset = idx % 2 === 0 ? 0 : 0.4; // Increased from 0.3 to 0.4 for more depth variation
+              const model = idx % 2 === 0 ? houseModel.clone() : houseModel4.clone();
+              
+              // Apply consistent scaling based on house count
+              const baseScale = 0.03; // Further reduced from 0.15 to make buildings smaller
+              let scaleVariation = 0;
+              if (property.houses === 2) {
+                scaleVariation = idx % 2 === 0 ? 0.02 : 0.01; // Smaller variation
+              } else if (property.houses > 2) {
+                scaleVariation = idx * 0.003; // Smaller variation
+              }
+              const finalScale = baseScale + scaleVariation;
+              model.scale.set(finalScale, finalScale, finalScale);
+              
+              return (
+                <primitive
+                  key={`house-${i}-${idx}`}
+                  object={model}
+                  position={[xOffset, 0, zOffset]}
+                  rotation={[0, Math.PI/2, 0]}
+                />
+              );
+            })}
+            {property.houses >= 5 && (
+              <primitive
+                object={hotelModel.clone()}
+                position={[0, 0, 0]}
+                rotation={[0, Math.PI/2, 0]}
+                scale={[0.001, 0.001, 0.001]}
+              />
+            )}
+          </>
+        )}
       </group>
     );
   }
@@ -94,17 +140,18 @@ const Board = ({
   const playerTokens = players.map((player, index) => {
     const position = player.position;
     let x = 0, z = 0;
-    if (position < 10) { x = 5 - position * spaceSize; z = 5; }
-    else if (position < 20) { x = -5; z = 5 - (position - 10) * spaceSize; }
-    else if (position < 30) { x = -5 + (position - 20) * spaceSize; z = -5; }
-    else { x = 5; z = -5 + (position - 30) * spaceSize; }
+    const cornerOffset = boardSize / 2 - spaceSize / 2;
+    if (position < 10) { x = cornerOffset - position * spaceSize; z = cornerOffset; }
+    else if (position < 20) { x = -cornerOffset; z = cornerOffset - (position - 10) * spaceSize; }
+    else if (position < 30) { x = -cornerOffset + (position - 20) * spaceSize; z = -cornerOffset; }
+    else { x = cornerOffset; z = -cornerOffset + (position - 30) * spaceSize; }
     
     x += (index % 3) * 0.25 - 0.25;
     z += Math.floor(index / 3) * 0.25 - 0.25;
     
     return (
       <mesh key={`player-${player.id}`} position={[x, 0.4, z]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16]} />
+        <sphereGeometry args={[0.4, 16, 16]} />
         <meshStandardMaterial 
           color={player.color} 
           emissive={currentPlayer === index ? player.color : undefined}
@@ -218,10 +265,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
+  console.log('pro: ', gameState.properties);
+
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 relative">
-        <Canvas shadows camera={{ position: [0, 15, 0], fov: 50, near: 0.1, far: 1000 }}>
+        <Canvas shadows camera={{ position: [0, 30, 0], fov: 50, near: 0.1, far: 2000 }}>
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} castShadow intensity={0.8} />
           <spotLight position={[0, 15, 0]} angle={0.3} penumbra={1} castShadow intensity={1} />
