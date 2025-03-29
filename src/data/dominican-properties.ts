@@ -121,7 +121,7 @@ export const dominicanProperties: Property[] = [
     group: 'utility',
     color: 'gray',
     houses: 0,
-    position: 9,
+    position: 10,
     mortgaged: false,
     type: 'utility' as PropertyType
   },
@@ -231,7 +231,7 @@ export const dominicanProperties: Property[] = [
     color: 'green',
     group: 'utility',
     houses: 0,
-    position: 19,
+    position: 20,
     mortgaged: false,
     type: 'utility' as PropertyType
   },
@@ -341,7 +341,7 @@ export const dominicanProperties: Property[] = [
     color: 'gray',
     group: 'utility',
     houses: 0,
-    position: 29,
+    position: 30,
     mortgaged: false,
     type: 'utility' as PropertyType
   },
