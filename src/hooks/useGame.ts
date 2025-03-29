@@ -373,6 +373,21 @@ export const useGame = () => {
       });   
     } else {
       updatedPlayer.position = (updatedPlayer.position + diceSum) % 40; // Calculate new position
+      setTimeout(() => {
+        // Check if player passed GO (position 0)
+        console.log('new position: ', updatedPlayer.position, currentPlayer.position);
+        if ((currentPlayer.position > updatedPlayer.position) || updatedPlayer.position === 0) {
+          console.log('reward: ', currentPlayer.id);
+          onUpdateMoney(currentPlayer.id, DEFAULT_REWARD_GO); // Reward $200 for passing GO
+          PeerService.sendToAll({
+            type: 'notify-users',
+            payload: {
+              message: `${currentPlayer.name} reward!`,
+              description: `${currentPlayer.name} has earn a GO Reward!`
+            }
+          });    
+        }
+      }, 1000);
     }
 
     updatedPlayers[currentPlayerIndex] = updatedPlayer;
@@ -403,22 +418,6 @@ export const useGame = () => {
         description: `${currentPlayer.name} rolled the dice ${dice1} + ${dice2} = ${diceSum}`
       }
     });
-
-    setTimeout(() => {
-      // Check if player passed GO (position 0)
-      console.log('new position: ', updatedPlayer.position, currentPlayer.position);
-      if ((currentPlayer.position > updatedPlayer.position) || updatedPlayer.position === 0) {
-        console.log('reward: ', currentPlayer.id);
-        onUpdateMoney(currentPlayer.id, DEFAULT_REWARD_GO); // Reward $200 for passing GO
-        PeerService.sendToAll({
-          type: 'notify-users',
-          payload: {
-            message: `${currentPlayer.name} reward!`,
-            description: `${currentPlayer.name} has earn a GO Reward!`
-          }
-        });    
-      }
-    }, 1000);
 
   }, [toast]); // Dependencies: toast. gameState is accessed via ref.
 
@@ -554,7 +553,7 @@ export const useGame = () => {
     // Local toast
     toast.success(`You bought ${property.name} for $${property.price}`);
 
-  }, [toast]); // Dependencies: toast. gameState is accessed via ref.
+  }, []); // Dependencies: toast. gameState is accessed via ref.
 
   // --- handleBotTurn (Creator Only Logic) ---
   const handleBotTurn = useCallback((botPlayerIndex: number) => {
@@ -584,7 +583,36 @@ export const useGame = () => {
       const dice1 = Math.floor(Math.random() * 6) + 1;
       const dice2 = Math.floor(Math.random() * 6) + 1;
       const diceSum = dice1 + dice2;
-      const newPosition = (botPlayer.position + diceSum) % 40;
+      let newPosition = (botPlayer.position + diceSum) % 40;
+      console.log('checking bot position: ', newPosition);
+
+      if (newPosition === 30) { // Go to Jail position
+        onUpdateJailStatus(botPlayer.id, true); // Set jailed status
+        newPosition = (10) % 40; // GO to
+        PeerService.sendToAll({
+          type: 'notify-users',
+          payload: {
+            message: `${botPlayer.name} jail!`,
+            description: `${botPlayer.name} went to jail!`
+          }
+        });   
+      } else {
+        setTimeout(() => {
+          // Check if player passed GO (position 0)
+          console.log('new position: ', newPosition, botPlayer.position);
+          if ((newPosition < botPlayer.position) || newPosition === 0) {
+            console.log('reward: ', botPlayer.id);
+            onUpdateMoney(botPlayer.id, DEFAULT_REWARD_GO); // Reward $200 for passing GO
+            PeerService.sendToAll({
+              type: 'notify-users',
+              payload: {
+                message: `${botPlayer.name} reward!`,
+                description: `${botPlayer.name} has earn a GO Reward!`
+              }
+            });    
+          }
+        }, 1000);
+      }
       const playersAfterRoll = [...currentLoopState.players];
       playersAfterRoll[botPlayerIndex] = { ...botPlayer, position: newPosition };
       const stateAfterRoll: GameState = {

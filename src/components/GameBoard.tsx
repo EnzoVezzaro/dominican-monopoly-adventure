@@ -77,7 +77,7 @@ const Board = ({
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
   
   const goTileModel = useFBX('/assets/3d/Props/Traffic_Light_2.fbx');
-  const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
+  // const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
   const goJailModel = useFBX('/assets/3d/Buildings/Building_7.fbx');
   const parkModel = useFBX('/assets/3d/Props/Tram_Stop_1.fbx');
   
@@ -112,6 +112,18 @@ const Board = ({
     const color = getPropertyColor(property);
     
     const isCorner = i % 10 === 0; // Positions 0,10,20,30 are corners
+
+    {/*
+      // Jail space (position 10)
+            <Suspense fallback={null}>
+              <primitive 
+                object={jailModel.clone()}
+                position={[0, 0, 0]}
+                scale={0.09}
+                rotation={[0, Math.PI/2, 0]}
+              />
+            </Suspense>
+      */}
     
     boardSpaces.push(
       <group 
@@ -133,16 +145,6 @@ const Board = ({
                 object={goTileModel.clone()} 
                 position={[-1.9, 0, 0.9]}
                 scale={0.2}
-                rotation={[0, Math.PI/2, 0]}
-              />
-            </Suspense>
-          ) : i === 10 ? (
-            // Jail space (position 10)
-            <Suspense fallback={null}>
-              <primitive 
-                object={jailModel.clone()}
-                position={[0, 0, 0]}
-                scale={0.09}
                 rotation={[0, Math.PI/2, 0]}
               />
             </Suspense>
@@ -365,7 +367,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   
   useEffect(() => {
     // Only check for new actions if we don't already have one pending
-    if (currentPlayer) {
+    if (currentPlayer && !propertyForAction) {
       const propertyAtPosition = gameState.properties.find(
         p => p.position === currentPlayer.position
       );
@@ -411,7 +413,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         setPropertyForAction(isBuyable ? propertyAtPosition : null);
       }
     }
-  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot, gameState.cardStacks]);
+  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot]);
 
   const handleRollDice = () => {
     setDiceRolling(true);
