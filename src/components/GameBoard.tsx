@@ -72,6 +72,8 @@ const Board = ({
   const boardSize = 22;  // Keep same overall board size
   const spaceSize = 1.8; // Make properties thinner
 
+  const playerIndicator = useFBX('/assets/3d/Players/Player_indicator.fbx');
+
   const houseModel = useFBX('/assets/3d/Buildings/Building_1.fbx');
   const houseModel4 = useFBX('/assets/3d/Buildings/Building_5.fbx');
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
@@ -245,7 +247,7 @@ const Board = ({
         anchorX="center"
         anchorY="middle"
       >
-        MONOPOLY
+        DOMINOPOLY
       </Text>
     </group>
   );
@@ -319,6 +321,13 @@ const Board = ({
             color={player.color}
             isCurrent={currentPlayer === index}
           />
+          {currentPlayer === index && (
+            <primitive
+              object={playerIndicator.clone()}
+              position={[0, 1.5, 0]}
+              scale={0.005}
+            />
+          )}
         </group>
       );
     });
