@@ -58,8 +58,8 @@ const Board = ({
     
     if (i < 10) { 
       // First side (GO to JAIL) - correct as is
-      if (i === 0) { x = cornerOffset; z = cornerOffset - 0.85; } // GO
-      else if (i < 10) { x = cornerOffset - i * spaceSize - 1.1; z = cornerOffset + -0.85; } // Properties 1-9
+      if (i === 0) { x = cornerOffset; z = cornerOffset; } // GO
+      else if (i < 10) { x = cornerOffset - i * spaceSize - 1.1; z = cornerOffset - 0.85; } // Properties 1-9
     }
     else if (i < 20) { 
       // Second side (JAIL to PARKING)
@@ -80,10 +80,12 @@ const Board = ({
     const property = properties.find(p => p.position === i);
     const color = getPropertyColor(property);
     
+    const isCorner = i % 10 === 0; // Positions 0,10,20,30 are corners
+    
     boardSpaces.push(
       <group 
         key={`space-${i}`} 
-        position={[x, 0, z]}
+        position={[x, 0, z]} // Raise corners slightly
         onClick={() => onSpaceClick(property, i)}
         rotation={[0, 
           i < 10 ? 0 : 
@@ -92,10 +94,19 @@ const Board = ({
           Math.PI/2, 
         0]}
       >
-        <mesh position={[0, 0, -0.7]} receiveShadow>
-          <boxGeometry args={[spaceSize, 0.1, 0.9]} />
-          <meshStandardMaterial color={color} />
-        </mesh>
+        {isCorner ? (
+          // Corner space - wider and taller
+          <mesh position={[-0.6, 0, -0.7]} receiveShadow>
+            <boxGeometry args={[spaceSize * 1.5, 0, spaceSize * 1.5]} />
+            <meshStandardMaterial color={color || 'gray'} />
+          </mesh>
+        ) : (
+          // Regular property space
+          <mesh position={[0, 0, -0.7]} receiveShadow>
+            <boxGeometry args={[spaceSize, 0.1, 0.9]} />
+            <meshStandardMaterial color={color} />
+          </mesh>
+        )}
         <Text
           position={[0, 0.1, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
