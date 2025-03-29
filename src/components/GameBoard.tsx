@@ -181,10 +181,22 @@ const Board = ({
     const position = player.position;
     let x = 0, z = 0;
     const cornerOffset = boardSize / 2 - spaceSize / 2;
-    if (position < 10) { x = cornerOffset - position * spaceSize; z = cornerOffset; }
-    else if (position < 20) { x = -cornerOffset; z = cornerOffset - (position - 10) * spaceSize; }
-    else if (position < 30) { x = -cornerOffset + (position - 20) * spaceSize; z = -cornerOffset; }
-    else { x = cornerOffset; z = -cornerOffset + (position - 30) * spaceSize; }
+    if (position < 10) { 
+      if (position === 0) { x = cornerOffset; z = cornerOffset; } 
+      else { x = cornerOffset - position * spaceSize - 1.1; z = cornerOffset - 0.85; }
+    }
+    else if (position < 20) { 
+      if (position === 10) { x = -cornerOffset; z = cornerOffset; }
+      else { x = -cornerOffset + spaceSize - 1; z = cornerOffset - (position - 10) * spaceSize - 1.1; }
+    }
+    else if (position < 30) { 
+      if (position === 20) { x = -cornerOffset; z = -cornerOffset; }
+      else { x = -cornerOffset + (position - 20) * spaceSize + 1.1; z = -cornerOffset + 0.85; }
+    }
+    else { 
+      if (position === 30) { x = cornerOffset; z = -cornerOffset; }
+      else { x = cornerOffset - 0.85; z = -cornerOffset + (position - 30) * spaceSize + 1.1; }
+    }
     
     x += (index % 3) * 0.25 - 0.25;
     z += Math.floor(index / 3) * 0.25 - 0.25;
