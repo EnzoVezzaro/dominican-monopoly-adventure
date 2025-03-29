@@ -54,6 +54,7 @@ export interface Property {
   mortgaged: boolean;
   type: PropertyType;
   drawnCard?: SpecialCardType;
+  group?: string;
 }
 
 export interface GameState {
