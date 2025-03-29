@@ -6,7 +6,7 @@ import { dominicanProperties } from '../data/dominican-properties';
 import { toast } from 'sonner';
 import { boxCards, surpriseCards } from '@/data/special-cards';
 import { DEFAULT_REWARD_GO } from '@/lib/colors';
-
+ 
 const INITIAL_MONEY = 1500;
 const BOT_COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33D1', '#33D1FF', '#D1FF33', '#FF5733', '#D133FF'];
 const PLAYER_COLORS = ['#F2C85A', '#E55934', '#46B1C9', '#009B77', '#533747'];
@@ -386,6 +386,30 @@ export const useGame = () => {
               description: `${currentPlayer.name} has earn a GO Reward!`
             }
           });    
+        }
+
+        // Check if player landed on a bot-owned property
+        const propertyAtPosition = currentState.properties.find(p => p.position === updatedPlayer.position);
+        if (propertyAtPosition && propertyAtPosition.owner && 
+            propertyAtPosition.owner !== currentPlayer.id && 
+            !propertyAtPosition.mortgaged) {
+          
+          const owner = currentState.players.find(p => p.id === propertyAtPosition.owner);
+          if (owner && owner.type === 'bot') {
+            const rentAmount = calculateRent(propertyAtPosition, owner.id, currentState, diceSum);
+            if (rentAmount > 0) {
+              onUpdateMoney(currentPlayer.id, -rentAmount); // Deduct from player
+              onUpdateMoney(owner.id, rentAmount); // Add to bot owner
+              PeerService.sendToAll({
+                type: 'notify-users',
+                payload: {
+                  message: "Rent Paid",
+                  description: `${currentPlayer.name} paid $${rentAmount} rent to ${owner.name} for ${propertyAtPosition.name}`
+                }
+              });
+              toast.success(`You paid $${rentAmount} rent to ${owner.name}`);
+            }
+          }
         }
       }, 1000);
     }
@@ -1040,6 +1064,33 @@ export const useGame = () => {
 
     setGameState(updatedState);
     
+    // Check if player landed on a bot-owned property
+    const propertyAtPosition = currentState.properties.find(p => p.position === newPosition % 40);
+    if (propertyAtPosition && propertyAtPosition.owner && 
+        propertyAtPosition.owner !== playerId && 
+        !propertyAtPosition.mortgaged) {
+      
+      const owner = currentState.players.find(p => p.id === propertyAtPosition.owner);
+      if (owner && owner.type === 'bot') {
+        // Use last dice roll for rent calculation (utilities)
+        const diceSum = currentState.dice[0] + currentState.dice[1];
+        const rentAmount = calculateRent(propertyAtPosition, owner.id, currentState, diceSum);
+        
+        if (rentAmount > 0) {
+          onUpdateMoney(playerId, -rentAmount); // Deduct from player
+          onUpdateMoney(owner.id, rentAmount); // Add to bot owner
+          PeerService.sendToAll({
+            type: 'notify-users',
+            payload: {
+              message: "Rent Paid",
+              description: `${player.name} paid $${rentAmount} rent to ${owner.name} for ${propertyAtPosition.name}`
+            }
+          });
+          toast.success(`You paid $${rentAmount} rent to ${owner.name}`);
+        }
+      }
+    }
+
     // Send game state update first
     PeerService.sendToAll({ type: 'game-state', payload: updatedState });
     
