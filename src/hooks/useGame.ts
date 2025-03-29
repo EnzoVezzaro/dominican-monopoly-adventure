@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Player, GameState, GameEvent, Connection, Property, NotificationState } from '../types/game';
+import { Character, characters } from '../data/characters'; // Import Character type and characters array
 import PeerService from '../services/PeerService';
 import { dominicanProperties } from '../data/dominican-properties';
 import { toast } from 'sonner';
@@ -75,7 +76,8 @@ export const useGame = () => {
     }
   }, [toast]);
 
-  const createGame = useCallback(async (name: string, players: number) => {
+  // Update createGame signature
+  const createGame = useCallback(async (name: string, character: Character, players: number) => { 
     setPlayerName(name);
     setMaxPlayers(players);
     setIsCreator(true);
@@ -92,9 +94,10 @@ export const useGame = () => {
         position: 0,
         money: INITIAL_MONEY,
         properties: [],
-        avatar: '',
+        avatar: '', // Avatar might be derived from character later
         color: PLAYER_COLORS[0],
-        isJailed: false
+        isJailed: false,
+        character: character // Use the passed character
       }],
       currentPlayer: 0,
       properties: dominicanProperties.map(p => ({ ...p, owner: null })), // Ensure owner is initially null
@@ -253,7 +256,8 @@ export const useGame = () => {
         properties: [],
         avatar: '',
         color: PLAYER_COLORS[0],
-        isJailed: false
+        isJailed: false,
+        character: currentCreatorState.players[0].character // Creator keeps their chosen character
       },
       ...connections.map((conn, index) => ({
         id: conn.id,
@@ -264,7 +268,8 @@ export const useGame = () => {
         properties: [],
         avatar: '',
         color: PLAYER_COLORS[(index + 1) % PLAYER_COLORS.length],
-        isJailed: false
+        isJailed: false,
+        character: characters[(index + 1) % characters.length] // Assign default characters cyclically
       }))
     ];
     
@@ -275,10 +280,11 @@ export const useGame = () => {
       type: 'bot' as const,
       position: 0,
       money: INITIAL_MONEY,
-      properties: [],
-      avatar: '',
-      color: BOT_COLORS[index % BOT_COLORS.length],
-      isJailed: false
+        properties: [],
+        avatar: '',
+        color: BOT_COLORS[index % BOT_COLORS.length],
+        isJailed: false,
+        character: characters[(humanPlayers.length + index) % characters.length] // Assign default characters cyclically
     }));
     
     const players = [...humanPlayers, ...botPlayers];
@@ -1056,44 +1062,43 @@ export const useGame = () => {
     });
   }, [toast]);
 
-  const onGiveJailCard = useCallback((fromPlayerId: string, toPlayerId: string) => {
+  // Rename onGiveJailCard to onJailCard
+  const onJailCard = useCallback((playerId: string) => { 
     const currentState = gameStateRef.current;
     if (!currentState || !currentState.gameStarted || currentState.gameOver) return;
 
-    const fromPlayerIndex = currentState.players.findIndex(p => p.id === fromPlayerId);
-    const toPlayerIndex = currentState.players.findIndex(p => p.id === toPlayerId);
-    if (fromPlayerIndex === -1 || toPlayerIndex === -1) return;
+    const playerIndex = currentState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return;
 
     const updatedPlayers = [...currentState.players];
     // In a real implementation, we'd track jail cards in player state
-    // This is a simplified version that just shows the transfer
-    updatedPlayers[fromPlayerIndex] = {
-      ...updatedPlayers[fromPlayerIndex],
-      // Would decrement jail card count here
-    };
-    updatedPlayers[toPlayerIndex] = {
-      ...updatedPlayers[toPlayerIndex],
+    // This simplified version now just logs that the player received a card
+    updatedPlayers[playerIndex] = {
+      ...updatedPlayers[playerIndex],
       // Would increment jail card count here
     };
 
     const updatedState: GameState = {
       ...currentState,
-      players: updatedPlayers
+      players: updatedPlayers // Only potentially update the recipient's state if needed
     };
 
-    setGameState(updatedState);
-    PeerService.sendToAll({ type: 'game-state', payload: updatedState });
+    // Update state locally (might not be necessary if only tracking card count)
+    setGameState(updatedState); 
+    // Broadcast the state if player object actually changed (e.g., card count)
+    PeerService.sendToAll({ type: 'game-state', payload: updatedState }); 
 
-    toast.success(`Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`);
+    const recipientName = updatedPlayers[playerIndex].name;
+    toast.success(`${recipientName} received a Get Out of Jail Free card`);
 
     PeerService.sendToAll({
             type: 'notify-users',
             payload: {
-              message: 'Jail Card Transferred',
-              description: `Get out of jail card given from ${updatedPlayers[fromPlayerIndex].name} to ${updatedPlayers[toPlayerIndex].name}`
+              message: 'Jail Card Received',
+              description: `${recipientName} received a Get Out of Jail Free card`
             }
     });
-  }, [toast]);
+  }, [toast]); // Keep dependencies
 
   return {
     gameId,
@@ -1111,6 +1116,6 @@ export const useGame = () => {
     onMovePlayer,
     onUpdateMoney,
     onUpdateJailStatus,
-    onGiveJailCard
+    onJailCard // Rename in returned object
   };
 };

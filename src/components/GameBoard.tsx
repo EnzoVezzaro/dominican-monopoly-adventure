@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dices, CircleDollarSign, Home, Bot } from 'lucide-react';
 import { GameState, Player, Property } from '@/types/game';
 import PlayerInfo from './PlayerInfo';
+import PlayerToken from './PlayerToken'; // Import the new component
 import PeerService from '@/services/PeerService';
 import PropertyActionCard from './PropertyActionCard';
 import { getPropertyColor } from '@/lib/colors';
@@ -21,7 +22,7 @@ interface GameBoardProps {
   onMovePlayer: (playerId: string, newPosition: number) => void;
   onUpdateMoney: (playerId: string, amount: number) => void;
   onUpdateJailStatus: (playerId: string, jailed: boolean) => void;
-  onGiveJailCard: (playerId: string) => void;
+  onJailCard: (playerId: string) => void; // Rename prop
 }
 
 // Create a texture loader once outside of component to avoid recreating on every render
@@ -225,21 +226,45 @@ const Board = ({
         else { x = cornerOffset - 0.85; z = -cornerOffset + (position - 30) * spaceSize + 1.1; }
       }
       
-      x += (index % 3) * 0.25 - 0.25;
-      z += Math.floor(index / 3) * 0.25 - 0.25;
+      // Adjust vertical position slightly for the model base
+      const yPos = 0.1; 
+
+      // Calculate offset for players on the same space to avoid collision
+      const playersOnSameSpace = players.filter(p => p.position === position);
+      const numPlayersOnSpace = playersOnSameSpace.length;
+      const playerIndexOnSpace = playersOnSameSpace.findIndex(p => p.id === player.id);
+
+      let offsetX = 0;
+      let offsetZ = 0;
+      if (numPlayersOnSpace > 1) {
+          const offsetRadius = 0.4; // Radius of the circle around the space center
+          const angleStep = (2 * Math.PI) / numPlayersOnSpace; // Angle between players
+          const angle = playerIndexOnSpace * angleStep;
+          
+          offsetX = Math.cos(angle) * offsetRadius;
+          offsetZ = Math.sin(angle) * offsetRadius;
+      }
       
+      x += offsetX;
+      z += offsetZ;
+
+      // Ensure player and character exist before trying to access model
+      if (!player || !player.character) {
+        console.warn(`Player or character data missing for index ${index}`);
+        return null; // Skip rendering if data is incomplete
+      }
+
       return (
-        <mesh key={`player-${player.id}`} position={[x, 0.4, z]} castShadow>
-          <sphereGeometry args={[0.4, 16, 16]} />
-          <meshStandardMaterial 
-            color={player.color} 
-            emissive={currentPlayer === index ? player.color : undefined}
-            emissiveIntensity={0.5}
+        <group key={`player-${player.id}`} position={[x, yPos, z]}>
+          <PlayerToken 
+            modelPath={`/assets/3d/Players/${player.character.model}`}
+            color={player.color}
+            isCurrent={currentPlayer === index}
           />
-        </mesh>
+        </group>
       );
     });
-  }, [players, currentPlayer, boardSize, spaceSize]);
+  }, [players, currentPlayer, boardSize, spaceSize]); // Dependencies remain the same
   
   return (
     <group ref={boardRef}>
@@ -270,7 +295,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onMovePlayer,
   onUpdateMoney,
   onUpdateJailStatus,
-  onGiveJailCard
+  onJailCard // Rename destructured prop here
 }) => {
   const [diceValues, setDiceValues] = useState<[number, number]>([1, 1]);
   const [diceRolling, setDiceRolling] = useState(false);
@@ -464,7 +489,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                         onUpdateJailStatus(effect.playerId, effect.jailed);
                         break;
                       case 'get_out_of_jail':
-                        onGiveJailCard(effect.playerId);
+                        onJailCard(effect.playerId); // Rename function call
                         break;
                       default:
                         console.error('Unknown effect type:', effect);

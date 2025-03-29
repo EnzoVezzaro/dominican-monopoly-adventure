@@ -1,3 +1,5 @@
+import { Character } from "@/data/characters";
+
 export type PlayerType = 'human' | 'bot';
 
 export interface Player {
@@ -10,6 +12,7 @@ export interface Player {
   avatar: string;
   color: string;
   isJailed: boolean;
+  character: Character;
 }
 
 export type PropertyType = "property" | "utility" | "railroad" | "surprise" | "box";
@@ -27,11 +30,13 @@ export type CardEffect = {
   value: number;
   target?: 'self' | 'all' | 'others';
   description: string;
-  fromPlayerId?: string;
-  toPlayerId?: string;
+  // fromPlayerId?: string; // Removed
+  // toPlayerId?: string; // Removed
+  playerId?: string; // Added playerId for consistency, optional for effects like 'move to start'
 } & (
   { type: 'move' | 'money' | 'jail' } |
-  { type: 'get_out_of_jail', fromPlayerId: string, toPlayerId: string }
+  // Update get_out_of_jail effect to only require the recipient playerId
+  { type: 'get_out_of_jail', playerId: string } 
 );
 
 export interface SpecialCardType {

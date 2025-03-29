@@ -6,6 +6,7 @@ import WaitingRoom from '@/components/WaitingRoom';
 import JoinGame from '@/components/JoinGame';
 import GameBoard from '@/components/GameBoard';
 import { useGame } from '@/hooks/useGame';
+import { Character } from '@/data/characters'; // Import Character type
 
 const Index = () => {
   const { 
@@ -24,7 +25,7 @@ const Index = () => {
     onMovePlayer,
     onUpdateMoney,
     onUpdateJailStatus,
-    onGiveJailCard
+    onJailCard // Rename destructured variable
   } = useGame();
   
   const [view, setView] = useState<'create' | 'join' | 'waiting' | 'game'>('create');
@@ -53,8 +54,10 @@ const Index = () => {
     }
   }, [gameState]);
   
-  const handleCreateGame = async (name: string, players: number) => {
-    const newGameId = await createGame(name, players);
+  // Update handleCreateGame signature
+  const handleCreateGame = async (name: string, character: Character, players: number) => { 
+    // Pass character to the hook's createGame
+    const newGameId = await createGame(name, character, players); 
     if (newGameId) {
       setView('waiting');
     }
@@ -108,7 +111,7 @@ const Index = () => {
           onMovePlayer={onMovePlayer}
           onUpdateMoney={onUpdateMoney}
           onUpdateJailStatus={onUpdateJailStatus}
-          onGiveJailCard={onGiveJailCard}
+          onJailCard={onJailCard} // Rename prop passed to GameBoard
         />
       ) : (
         <GameCreation onCreateGame={handleCreateGame} />
