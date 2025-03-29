@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, Suspense } from 'react'; // Added Suspense
-import { Canvas, useLoader } from '@react-three/fiber'; // Added useLoader
+import { Canvas, useLoader, useFrame } from '@react-three/fiber'; // Added useLoader and useFrame
 import { OrbitControls, Text, useTexture, useFBX } from '@react-three/drei';
 import * as THREE from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'; // Added OBJLoader
@@ -34,6 +34,26 @@ const fallbackTexture = textureLoader.load(
 
 // Create a cached texture loader for board texture
 let boardTextureCache: THREE.Texture | null = null;
+
+const RotatingIndicator = () => {
+  const ref = useRef<THREE.Group>(null);
+  const playerIndicator = useFBX('/assets/3d/Players/Player_indicator.fbx');
+  
+  useFrame((state, delta) => {
+    if (ref.current) {
+      ref.current.rotation.y += delta * 2; // Rotate at 2 radians per second
+    }
+  });
+
+  return (
+    <group ref={ref}>
+      <primitive
+        object={playerIndicator.clone()}
+        scale={0.005}
+      />
+    </group>
+  );
+};
 
 const Board = ({ 
   properties, 
@@ -71,8 +91,6 @@ const Board = ({
   
   const boardSize = 22;  // Keep same overall board size
   const spaceSize = 1.8; // Make properties thinner
-
-  const playerIndicator = useFBX('/assets/3d/Players/Player_indicator.fbx');
 
   const houseModel = useFBX('/assets/3d/Buildings/Building_1.fbx');
   const houseModel4 = useFBX('/assets/3d/Buildings/Building_5.fbx');
@@ -322,11 +340,9 @@ const Board = ({
             isCurrent={currentPlayer === index}
           />
           {currentPlayer === index && (
-            <primitive
-              object={playerIndicator.clone()}
-              position={[0, 1.5, 0]}
-              scale={0.005}
-            />
+            <group position={[0, 1.5, 0]}>
+              <RotatingIndicator />
+            </group>
           )}
         </group>
       );
