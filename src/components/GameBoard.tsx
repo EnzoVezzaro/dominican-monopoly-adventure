@@ -76,7 +76,7 @@ const Board = ({
   const houseModel4 = useFBX('/assets/3d/Buildings/Building_5.fbx');
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
   
-  const goTileModel = useLoader(OBJLoader, '/assets/3d/Tiles/1.obj');
+  const goTileModel = useFBX('/assets/3d/Props/Traffic_Light_2.fbx');
   const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
   const goJailModel = useFBX('/assets/3d/Buildings/Building_7.fbx');
   const parkModel = useFBX('/assets/3d/Buildings/Building_8.fbx');
@@ -131,9 +131,9 @@ const Board = ({
             <Suspense fallback={null}> {/* Add Suspense for model loading */}
               <primitive 
                 object={goTileModel.clone()} 
-                position={[3.2, -1.6, 0.9]} // Apply user-provided position
-                scale={1.4} // Apply user-provided scale
-                rotation={[0, 1.57, 0]} // Apply 180-degree rotation around Y-axis
+                position={[-1.9, 0, 0.9]}
+                scale={0.2}
+                rotation={[0, Math.PI/2, 0]}
               />
             </Suspense>
           ) : i === 10 ? (
@@ -426,7 +426,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 relative">
-        <Canvas shadows camera={{ position: [0, 30, 0], fov: 50, near: 0.1, far: 2000 }}>
+        <Canvas shadows camera={{ position: [0, 30, 0], rotation: [0, Math.PI, 0], fov: 50, near: 0.1, far: 2000 }}>
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} castShadow intensity={0.8} />
           <spotLight position={[0, 15, 0]} angle={0.3} penumbra={1} castShadow intensity={1} />
