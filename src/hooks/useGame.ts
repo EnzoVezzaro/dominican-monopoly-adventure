@@ -5,6 +5,7 @@ import PeerService from '../services/PeerService';
 import { dominicanProperties } from '../data/dominican-properties';
 import { toast } from 'sonner';
 import { boxCards, surpriseCards } from '@/data/special-cards';
+import { DEFAULT_REWARD_GO } from '@/lib/colors';
 
 const INITIAL_MONEY = 1500;
 const BOT_COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33D1', '#33D1FF', '#D1FF33', '#FF5733', '#D133FF'];
@@ -356,11 +357,24 @@ export const useGame = () => {
     console.log('dice: ', dice);
     console.log('dice sum: ', diceSum);
     
-    
     // --- Client calculates its *intended* new state ---
     const updatedPlayers = [...currentState.players];
     const updatedPlayer = { ...currentPlayer };
-    updatedPlayer.position = (updatedPlayer.position + diceSum) % 40; // Calculate new position
+    console.log('checking if send to jail: ', updatedPlayer.position + diceSum);
+    if (updatedPlayer.position + diceSum === 30) { // Go to Jail position
+      onUpdateJailStatus(currentPlayer.id, true); // Set jailed status
+      updatedPlayer.position = (10) % 40; // GO to
+      PeerService.sendToAll({
+        type: 'notify-users',
+        payload: {
+          message: `${currentPlayer.name} jail!`,
+          description: `${currentPlayer.name} went to jail!`
+        }
+      });   
+    } else {
+      updatedPlayer.position = (updatedPlayer.position + diceSum) % 40; // Calculate new position
+    }
+
     updatedPlayers[currentPlayerIndex] = updatedPlayer;
     
     const clientUpdatedState: GameState = {
@@ -388,7 +402,23 @@ export const useGame = () => {
         message: `${currentPlayer.name} rolled!`,
         description: `${currentPlayer.name} rolled the dice ${dice1} + ${dice2} = ${diceSum}`
       }
-    });    
+    });
+
+    setTimeout(() => {
+      // Check if player passed GO (position 0)
+      console.log('new position: ', updatedPlayer.position, currentPlayer.position);
+      if ((currentPlayer.position > updatedPlayer.position) || updatedPlayer.position === 0) {
+        console.log('reward: ', currentPlayer.id);
+        onUpdateMoney(currentPlayer.id, DEFAULT_REWARD_GO); // Reward $200 for passing GO
+        PeerService.sendToAll({
+          type: 'notify-users',
+          payload: {
+            message: `${currentPlayer.name} reward!`,
+            description: `${currentPlayer.name} has earn a GO Reward!`
+          }
+        });    
+      }
+    }, 1000);
 
   }, [toast]); // Dependencies: toast. gameState is accessed via ref.
 
@@ -987,11 +1017,11 @@ export const useGame = () => {
     
     // Then send notification with player name and new position
     PeerService.sendToAll({
-            type: 'notify-users',
-            payload: {
-              message: "Player Moved",
-              description: `${player.name} moved to position ${newPosition}`
-            }
+      type: 'notify-users',
+      payload: {
+        message: "Player Moved",
+        description: `${player.name} moved to position ${newPosition}`
+      }
     });
 
     // Local toast
@@ -1022,11 +1052,11 @@ export const useGame = () => {
     toast.success(`$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`);
 
     PeerService.sendToAll({
-            type: 'notify-users',
-            payload: {
-              message: amount >= 0 ? "Money Added" : "Money Deducted",
-              description: `$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`
-            }
+      type: 'notify-users',
+      payload: {
+        message: amount >= 0 ? "Money Added" : "Money Deducted",
+        description: `$${Math.abs(amount)} ${amount >= 0 ? 'added to' : 'deducted from'} ${updatedPlayers[playerIndex].name}`
+      }
     });
   }, [toast]);
 
@@ -1054,11 +1084,11 @@ export const useGame = () => {
     toast.success(`${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`);
 
     PeerService.sendToAll({
-            type: 'notify-users',
-            payload: {
-              message: jailed ? "Player Jailed" : "Player Released",
-              description: `${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`
-            }
+      type: 'notify-users',
+      payload: {
+        message: jailed ? "Player Jailed" : "Player Released",
+        description: `${updatedPlayers[playerIndex].name} ${jailed ? 'sent to' : 'released from'} jail`
+      }
     });
   }, [toast]);
 
@@ -1092,11 +1122,11 @@ export const useGame = () => {
     toast.success(`${recipientName} received a Get Out of Jail Free card`);
 
     PeerService.sendToAll({
-            type: 'notify-users',
-            payload: {
-              message: 'Jail Card Received',
-              description: `${recipientName} received a Get Out of Jail Free card`
-            }
+      type: 'notify-users',
+      payload: {
+        message: 'Jail Card Received',
+        description: `${recipientName} received a Get Out of Jail Free card`
+      }
     });
   }, [toast]); // Keep dependencies
 

@@ -12,7 +12,7 @@ import PlayerInfo from './PlayerInfo';
 import PlayerToken from './PlayerToken'; // Import the new component
 import PeerService from '@/services/PeerService';
 import PropertyActionCard from './PropertyActionCard';
-import { getPropertyColor } from '@/lib/colors';
+import { DEFAULT_REWARD_GO, getPropertyColor } from '@/lib/colors';
 import { CardEffectAction, handleCardEffect } from '@/lib/card-effects';
 
 interface GameBoardProps {
@@ -365,7 +365,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   
   useEffect(() => {
     // Only check for new actions if we don't already have one pending
-    if (currentPlayer && !propertyForAction) {
+    if (currentPlayer) {
       const propertyAtPosition = gameState.properties.find(
         p => p.position === currentPlayer.position
       );
@@ -411,7 +411,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         setPropertyForAction(isBuyable ? propertyAtPosition : null);
       }
     }
-  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot, propertyForAction]);
+  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot, gameState.cardStacks]);
 
   const handleRollDice = () => {
     setDiceRolling(true);
@@ -424,11 +424,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
         clearInterval(rollInterval);
         setDiceRolling(false);
         onRollDice(latestDiceValues);
-        const newPosition = (currentPlayer.position + latestDiceValues[0] + latestDiceValues[1]) % 40;
-        if (newPosition === 30) { // Go to Jail position
-          onMovePlayer(currentPlayer.id, 10); // Move to Jail position
-          onUpdateJailStatus(currentPlayer.id, true); // Set jailed status
-        }
       }
     }, 100);
   };

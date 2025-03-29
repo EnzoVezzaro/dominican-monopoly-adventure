@@ -7,6 +7,8 @@ export const DEFAULT_UTILITY_COLOR = '#ff4e00';
 export const DEFAULT_SURPRISE_COLOR = '#800080';
 export const DEFAULT_BOX_COLOR = '#FFD700';
 
+export const DEFAULT_REWARD_GO = 200;
+
 export const getPropertyColor = (property: Property) => {
   if (!property) return DEFAULT_PROPERTY_COLOR;
   
