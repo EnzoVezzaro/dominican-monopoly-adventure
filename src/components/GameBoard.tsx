@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useRef, useEffect, useState, useCallback, Suspense } from 'react'; // Added Suspense
+import { Canvas, useLoader } from '@react-three/fiber'; // Added useLoader
 import { OrbitControls, Text, useTexture, useFBX } from '@react-three/drei';
 import * as THREE from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'; // Added OBJLoader
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -72,11 +73,13 @@ const Board = ({
   const spaceSize = 1.8; // Make properties thinner
 
   const houseModel = useFBX('/assets/3d/Buildings/Building_1.fbx');
-  const houseModel2 = useFBX('/assets/3d/Buildings/Building_2.fbx');
-  const houseModel3 = useFBX('/assets/3d/Buildings/Building_4.fbx');
   const houseModel4 = useFBX('/assets/3d/Buildings/Building_5.fbx');
-  const houseModel5 = useFBX('/assets/3d/Buildings/Building_6.fbx');
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
+  
+  const goTileModel = useLoader(OBJLoader, '/assets/3d/Tiles/1.obj');
+  const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
+  const goJailModel = useFBX('/assets/3d/Buildings/Building_7.fbx');
+  const parkModel = useFBX('/assets/3d/Buildings/Building_8.fbx');
   
   // Create board spaces
   const boardSpaces = [];
@@ -123,11 +126,53 @@ const Board = ({
         0]}
       >
         {isCorner ? (
-          // Corner space - wider and taller
-          <mesh position={[-0.55, 0, -0.55]} receiveShadow>
-            <boxGeometry args={[spaceSize * 1.55, 0, spaceSize * 1.55]} />
-            <meshStandardMaterial color={color || 'gray'} />
-          </mesh>
+          i === 0 ? (
+            // Special case for GO tile (position 0)
+            <Suspense fallback={null}> {/* Add Suspense for model loading */}
+              <primitive 
+                object={goTileModel.clone()} 
+                position={[3.2, -1.6, 0.9]} // Apply user-provided position
+                scale={1.4} // Apply user-provided scale
+                rotation={[0, 1.57, 0]} // Apply 180-degree rotation around Y-axis
+              />
+            </Suspense>
+          ) : i === 10 ? (
+            // Jail space (position 10)
+            <Suspense fallback={null}>
+              <primitive 
+                object={jailModel.clone()}
+                position={[0, 0, 0]}
+                scale={0.09}
+                rotation={[0, Math.PI/2, 0]}
+              />
+            </Suspense>
+          ) : i === 20 ? (
+            // Parking space (position 20)
+            <Suspense fallback={null}>
+              <primitive 
+                object={parkModel.clone()}
+                position={[0, 0, 0]}
+                scale={0.09}
+                rotation={[0, Math.PI/2, 0]}
+              />
+            </Suspense>
+          ) : i === 30 ? (
+            // Go to Jail space (position 30)
+            <Suspense fallback={null}>
+              <primitive 
+                object={goJailModel.clone()}
+                position={[0, 0, 0]}
+                scale={0.09}
+                rotation={[0, Math.PI/2, 0]}
+              />
+            </Suspense>
+          ) : (
+            // Other corner spaces - wider and taller
+            <mesh position={[-0.55, 0, -0.55]} receiveShadow>
+              <boxGeometry args={[spaceSize * 1.55, 0, spaceSize * 1.55]} />
+              <meshStandardMaterial color={color || 'gray'} />
+            </mesh>
+          )
         ) : (
           // Regular property space
           <mesh position={[0, 0, -0.7]} receiveShadow>
