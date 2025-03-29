@@ -299,8 +299,19 @@ const Board = ({
         return null; // Skip rendering if data is incomplete
       }
 
+      // Calculate base rotation to face inward (opposite of board side rotation)
+      let baseRotation = 0;
+      if (position < 10) baseRotation = Math.PI;
+      else if (position < 20) baseRotation = Math.PI/2;
+      else if (position < 30) baseRotation = 0;
+      else baseRotation = -Math.PI/2;
+      
+      // Add 45 degrees for corner positions
+      const isCorner = position % 10 === 0;
+      const cornerRotation = isCorner ? Math.PI/4 : 0;
+      
       return (
-        <group key={`player-${player.id}`} position={[x, yPos, z]}>
+        <group key={`player-${player.id}`} position={[x, yPos, z]} rotation={[0, baseRotation + cornerRotation, 0]}>
           <PlayerToken 
             modelPath={`/assets/3d/Players/${player.character.model}`}
             color={player.color}
