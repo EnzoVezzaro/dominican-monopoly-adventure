@@ -895,7 +895,7 @@ export const useGame = () => {
             type: 'notify-users',
             payload: {
               message: "Game Updated",
-              description: `Broadcasting corrected state: ${finalCorrectedState}`
+              description: `Broadcasting corrected state`
             }
           });
       }

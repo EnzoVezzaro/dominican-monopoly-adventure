@@ -68,26 +68,16 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, isCurrentTurn, properti
       </Card>
 
       {selectedProperty && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="relative bg-white rounded-lg p-6 max-w-md w-full">
-          <button 
-            onClick={() => setSelectedProperty(null)}
-            className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100"
-          >
-            <X size={20} />
-          </button>
-          <PropertyActionCard 
-            property={selectedProperty}
-            playerMoney={player.money}
-            onBuy={() => {}}
-            onPass={() => setSelectedProperty(null)}
-            open={true}
-            showActions={false}
-            closeButton={true}
-            isCardView={true}
-          />
-        </div>
-      </div>
+        <PropertyActionCard 
+          property={selectedProperty}
+          playerMoney={player.money}
+          onBuy={() => {}}
+          onPass={() => setSelectedProperty(null)}
+          open={true}
+          showActions={false}
+          closeButton={true}
+          isCardView={true}
+        />
       )}
     </>
   );
