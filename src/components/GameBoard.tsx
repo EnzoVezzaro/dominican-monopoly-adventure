@@ -24,6 +24,15 @@ interface GameBoardProps {
   onGiveJailCard: (playerId: string) => void;
 }
 
+// Create a texture loader once outside of component to avoid recreating on every render
+const textureLoader = new THREE.TextureLoader();
+const fallbackTexture = textureLoader.load(
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+);
+
+// Create a cached texture loader for board texture
+let boardTextureCache: THREE.Texture | null = null;
+
 const Board = ({ 
   properties, 
   players, 
@@ -36,12 +45,28 @@ const Board = ({
   onSpaceClick: (property: Property | null, position: number) => void
 }) => {
   const boardRef = useRef<THREE.Group>(null);
-  const fallbackTexture = new THREE.TextureLoader().load(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-  );
+  const [boardTexture, setBoardTexture] = useState<THREE.Texture>(fallbackTexture);
   
-  const boardTexture = new THREE.TextureLoader().load('/board-texture.jpg') || fallbackTexture;
-  const boardSpaces = [];
+  // Load texture only once with useEffect
+  useEffect(() => {
+    if (!boardTextureCache) {
+      textureLoader.load(
+        '/board-texture.jpg',
+        (texture) => {
+          boardTextureCache = texture;
+          setBoardTexture(texture);
+        },
+        undefined,
+        () => {
+          console.warn('Failed to load board texture, using fallback');
+          setBoardTexture(fallbackTexture);
+        }
+      );
+    } else {
+      setBoardTexture(boardTextureCache);
+    }
+  }, []);
+  
   const boardSize = 22;  // Keep same overall board size
   const spaceSize = 1.8; // Make properties thinner
 
@@ -52,6 +77,8 @@ const Board = ({
   const houseModel5 = useFBX('/assets/3d/Buildings/Building_6.fbx');
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
   
+  // Create board spaces
+  const boardSpaces = [];
   for (let i = 0; i < 40; i++) {
     let x = 0, z = 0;
     const cornerOffset = boardSize / 2 - spaceSize / 2;
@@ -160,7 +187,6 @@ const Board = ({
   }
 
   // Add center board logo - removed font property to avoid loading error
-  /**
   const centerContent = (
     <group position={[0, 0.1, 0]}>
       <Text
@@ -175,58 +201,61 @@ const Board = ({
       </Text>
     </group>
   );
-   */
-  
-  const playerTokens = players.map((player, index) => {
-    const position = player.position;
-    let x = 0, z = 0;
-    const cornerOffset = boardSize / 2 - spaceSize / 2;
-    if (position < 10) { 
-      if (position === 0) { x = cornerOffset; z = cornerOffset; } 
-      else { x = cornerOffset - position * spaceSize - 1.1; z = cornerOffset - 0.85; }
-    }
-    else if (position < 20) { 
-      if (position === 10) { x = -cornerOffset; z = cornerOffset; }
-      else { x = -cornerOffset + spaceSize - 1; z = cornerOffset - (position - 10) * spaceSize - 1.1; }
-    }
-    else if (position < 30) { 
-      if (position === 20) { x = -cornerOffset; z = -cornerOffset; }
-      else { x = -cornerOffset + (position - 20) * spaceSize + 1.1; z = -cornerOffset + 0.85; }
-    }
-    else { 
-      if (position === 30) { x = cornerOffset; z = -cornerOffset; }
-      else { x = cornerOffset - 0.85; z = -cornerOffset + (position - 30) * spaceSize + 1.1; }
-    }
-    
-    x += (index % 3) * 0.25 - 0.25;
-    z += Math.floor(index / 3) * 0.25 - 0.25;
-    
-    return (
-      <mesh key={`player-${player.id}`} position={[x, 0.4, z]} castShadow>
-        <sphereGeometry args={[0.4, 16, 16]} />
-        <meshStandardMaterial 
-          color={player.color} 
-          emissive={currentPlayer === index ? player.color : undefined}
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-    );
-  });
+
+  // Create player tokens - use memoization to prevent recreation on every render
+  const playerTokens = React.useMemo(() => {
+    return players.map((player, index) => {
+      const position = player.position;
+      let x = 0, z = 0;
+      const cornerOffset = boardSize / 2 - spaceSize / 2;
+      if (position < 10) { 
+        if (position === 0) { x = cornerOffset; z = cornerOffset; } 
+        else { x = cornerOffset - position * spaceSize - 1.1; z = cornerOffset - 0.85; }
+      }
+      else if (position < 20) { 
+        if (position === 10) { x = -cornerOffset; z = cornerOffset; }
+        else { x = -cornerOffset + spaceSize - 1; z = cornerOffset - (position - 10) * spaceSize - 1.1; }
+      }
+      else if (position < 30) { 
+        if (position === 20) { x = -cornerOffset; z = -cornerOffset; }
+        else { x = -cornerOffset + (position - 20) * spaceSize + 1.1; z = -cornerOffset + 0.85; }
+      }
+      else { 
+        if (position === 30) { x = cornerOffset; z = -cornerOffset; }
+        else { x = cornerOffset - 0.85; z = -cornerOffset + (position - 30) * spaceSize + 1.1; }
+      }
+      
+      x += (index % 3) * 0.25 - 0.25;
+      z += Math.floor(index / 3) * 0.25 - 0.25;
+      
+      return (
+        <mesh key={`player-${player.id}`} position={[x, 0.4, z]} castShadow>
+          <sphereGeometry args={[0.4, 16, 16]} />
+          <meshStandardMaterial 
+            color={player.color} 
+            emissive={currentPlayer === index ? player.color : undefined}
+            emissiveIntensity={0.5}
+          />
+        </mesh>
+      );
+    });
+  }, [players, currentPlayer, boardSize, spaceSize]);
   
   return (
     <group ref={boardRef}>
-      {/* Board base */}
+      {/* Board base - use stable reference to texture */}
       <mesh position={[0, -0.1, 0]} receiveShadow>
         <boxGeometry args={[boardSize, 0.1, boardSize]} />
         <meshStandardMaterial color="#E6DDC6" map={boardTexture} />
       </mesh>
       
-      {/* Board inner area with lighter color
+      {/* Board inner area with lighter color */}
       <mesh position={[0, -0.05, 0]} receiveShadow>
-        <boxGeometry args={[boardSize - spaceSize * 2, 0.1, boardSize - spaceSize * 2]} />
+        <boxGeometry args={[boardSize - spaceSize * 3.5, 0.1, boardSize - spaceSize * 3.5]} />
         <meshStandardMaterial color="#E6DDC6" />
       </mesh>
-       */}
+
+      {centerContent}
       {boardSpaces}
       {playerTokens}
     </group>
@@ -253,8 +282,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const isBot = currentPlayer?.type === 'bot';
   const isMyTurn = currentPlayer && !isBot && currentPlayer.id === PeerService.getCurrentPeerId();
   
-  console.log('propertyForAction: ', propertyForAction);
-
   useEffect(() => {
     // Only check for new actions if we don't already have one pending
     if (currentPlayer && !propertyForAction) {
@@ -268,8 +295,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
         return;
       }
 
-      const isBuyable = !propertyAtPosition.owner && (propertyAtPosition.price !== undefined);
       const isSpecialCard = propertyAtPosition.type === 'surprise' || propertyAtPosition.type === 'box';
+      const isCorner = propertyAtPosition.position === 10 || propertyAtPosition.position === 20 || propertyAtPosition.position === 30 || propertyAtPosition.position === 40 || propertyAtPosition.position === 0;
+      const isBuyable = !isCorner && !isSpecialCard && !propertyAtPosition.owner && (propertyAtPosition.price !== undefined);
       
       if (isSpecialCard) {
         try {
@@ -302,7 +330,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         setPropertyForAction(isBuyable ? propertyAtPosition : null);
       }
     }
-  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot]);
+  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot, propertyForAction]);
 
   const handleRollDice = () => {
     setDiceRolling(true);
@@ -319,13 +347,11 @@ const GameBoard: React.FC<GameBoardProps> = ({
     }, 100);
   };
 
-  const handleSpaceClick = (property: Property | null) => {
+  const handleSpaceClick = useCallback((property: Property | null, position: number) => {
     if (property) {
       setViewedProperty(property);
     }
-  };
-
-  console.log('pro: ', gameState.properties);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">
@@ -400,14 +426,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
             }}
             onPass={() => setPropertyForAction(null)}
             onAcceptCard={() => {
-              console.log('here: ', propertyForAction);
-              
               if (!propertyForAction?.drawnCard) {
                 console.error('No drawn card found');
                 return;
               }
-
-              console.log('Processing card:', propertyForAction.drawnCard);
               
               try {
                 handleCardEffect(
@@ -418,8 +440,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
                       console.error('No effect provided');
                       return;
                     }
-
-                    console.log('Executing effect:', effect);
                     
                     switch(effect.type) {
                       case 'move':
@@ -427,7 +447,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
                           console.error('Missing position for move effect');
                           return;
                         }
-                        console.log('Moving player to position', effect.position);
                         onMovePlayer(effect.playerId, effect.position);
                         break;
                       case 'money':
@@ -435,7 +454,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
                           console.error('Missing amount for money effect');
                           return;
                         }
-                        console.log('Updating money by', effect.amount);
                         onUpdateMoney(effect.playerId, effect.amount);
                         break;
                       case 'jail':
@@ -443,11 +461,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
                           console.error('Missing jailed status for jail effect');
                           return;
                         }
-                        console.log('Setting jail status to', effect.jailed);
                         onUpdateJailStatus(effect.playerId, effect.jailed);
                         break;
                       case 'get_out_of_jail':
-                        console.log('Giving get out of jail card');
                         onGiveJailCard(effect.playerId);
                         break;
                       default:
@@ -455,8 +471,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
                         return;
                     }
                     setPropertyForAction(null);
-                    console.log('is this triggeting');
-                    
                   }
                 );
               } catch (error) {
