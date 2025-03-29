@@ -96,8 +96,8 @@ const Board = ({
       >
         {isCorner ? (
           // Corner space - wider and taller
-          <mesh position={[-0.6, 0, -0.7]} receiveShadow>
-            <boxGeometry args={[spaceSize * 1.5, 0, spaceSize * 1.5]} />
+          <mesh position={[-0.55, 0, -0.55]} receiveShadow>
+            <boxGeometry args={[spaceSize * 1.55, 0, spaceSize * 1.55]} />
             <meshStandardMaterial color={color || 'gray'} />
           </mesh>
         ) : (
