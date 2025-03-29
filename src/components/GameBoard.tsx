@@ -79,7 +79,7 @@ const Board = ({
   const goTileModel = useFBX('/assets/3d/Props/Traffic_Light_2.fbx');
   const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
   const goJailModel = useFBX('/assets/3d/Buildings/Building_7.fbx');
-  const parkModel = useFBX('/assets/3d/Buildings/Building_8.fbx');
+  const parkModel = useFBX('/assets/3d/Props/Tram_Stop_1.fbx');
   
   // Create board spaces
   const boardSpaces = [];
@@ -151,9 +151,9 @@ const Board = ({
             <Suspense fallback={null}>
               <primitive 
                 object={parkModel.clone()}
-                position={[0, 0, 0]}
-                scale={0.09}
-                rotation={[0, Math.PI/2, 0]}
+                position={[0.2, 0, 0.3]}
+                scale={0.15}
+                rotation={[0, 180, 0]}
               />
             </Suspense>
           ) : i === 30 ? (
@@ -424,6 +424,11 @@ const GameBoard: React.FC<GameBoardProps> = ({
         clearInterval(rollInterval);
         setDiceRolling(false);
         onRollDice(latestDiceValues);
+        const newPosition = (currentPlayer.position + latestDiceValues[0] + latestDiceValues[1]) % 40;
+        if (newPosition === 30) { // Go to Jail position
+          onMovePlayer(currentPlayer.id, 10); // Move to Jail position
+          onUpdateJailStatus(currentPlayer.id, true); // Set jailed status
+        }
       }
     }, 100);
   };
@@ -437,10 +442,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 relative">
-        <Canvas shadows camera={{ position: [0, 30, 0], rotation: [0, Math.PI, 0], fov: 50, near: 0.1, far: 2000 }}>
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} castShadow intensity={0.8} />
-          <spotLight position={[0, 15, 0]} angle={0.3} penumbra={1} castShadow intensity={1} />
+        <Canvas camera={{ position: [0, 30, 0], rotation: [0, Math.PI, 0], fov: 50, near: 0.1, far: 2000 }}>
+          <ambientLight intensity={1.5} />
           <Board 
             properties={gameState.properties as Property[]}
             players={gameState.players}
