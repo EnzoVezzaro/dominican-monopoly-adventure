@@ -2,6 +2,7 @@ export interface Character {
   name: string;
   scale: number;
   scalePreview: number;
+  boardPosition: { x: number; y: number; z: number }; // Add board position
   buildings: {
     house_1: string;
     house_2: string;
@@ -16,8 +17,9 @@ export interface Character {
 export const characters: Character[] = [
   {
     name: "Platano",
-    scale: 0.75,
-    scalePreview: 0.08, 
+    scale: 0.85,
+    scalePreview: 0.08,
+    boardPosition: { x: 0, y: 0.4, z: 0 },
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -30,8 +32,9 @@ export const characters: Character[] = [
   },
   {
     name: "Guira",
-    scale: 0.005,
+    scale: 0.008,
     scalePreview: 0.0008,
+    boardPosition: { x: 0, y: 0.4, z: 0 },
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -44,8 +47,9 @@ export const characters: Character[] = [
   },
   {
     name: "Tambora",
-    scale: 0.05,
-    scalePreview: 0.04, 
+    scale: 0.65,
+    scalePreview: 0.04,
+    boardPosition: { x: 0, y: 0.4, z: 0 },
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -59,7 +63,8 @@ export const characters: Character[] = [
   {
     name: "Concho",
     scale: 0.75,
-    scalePreview: 0.06, 
+    scalePreview: 0.06,
+    boardPosition: { x: 0, y: 0.4, z: 0 },
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -74,6 +79,7 @@ export const characters: Character[] = [
     name: "Police",
     scale: 0.75,
     scalePreview: 0.008,
+    boardPosition: { x: 0, y: 0.4, z: 0 },
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -86,8 +92,9 @@ export const characters: Character[] = [
   },
   {
     name: "Campesino",
-    scale: 0.75,
-    scalePreview: 0.06, 
+    scale: 0.85,
+    scalePreview: 0.06,
+    boardPosition: { x: 0, y: 0.4, z: 0 },
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",

@@ -6,6 +6,7 @@ interface PlayerTokenProps {
   modelPath: string;
   color: string; // Used for fallback or potentially minor tinting if needed
   scale: number; // Add scale prop for the token size
+  boardPosition: { x: number; y: number; z: number }; // Add board position
 }
 
 // Helper function to apply any necessary material adjustments (optional)
@@ -34,8 +35,8 @@ const GltfModel: React.FC<{ path: string; color: string; scale: number }> = ({ p
   // Apply material changes (currently does nothing)
   applyMaterialChanges(scene, color);
 
-  // Scale and rotate - Use passed scale
-  return <primitive object={scene} scale={scale} rotation={[0, Math.PI, 0]} />;
+  // Scale the model using passed scale value
+  return <primitive object={scene} scale={scale} />;
 };
 
 // Component for loading FBX models
@@ -46,8 +47,8 @@ const FbxModel: React.FC<{ path: string; color: string; scale: number }> = ({ pa
   // Apply material changes (currently does nothing)
   applyMaterialChanges(scene, color);
 
-  // Scale and rotate - Use passed scale
-  return <primitive object={scene} scale={scale} rotation={[0, Math.PI, 0]} />;
+  // Scale the model using passed scale value
+  return <primitive object={scene} scale={scale} />;
 };
 
 
@@ -73,8 +74,7 @@ const Model: React.FC<{ path: string; color: string; scale: number }> = ({ path,
 };
 
 
-const PlayerToken: React.FC<PlayerTokenProps> = ({ modelPath, color, scale }) => { // Destructure scale
-
+const PlayerToken: React.FC<PlayerTokenProps> = ({ modelPath, color, scale, boardPosition }) => { // Destructure boardPosition
   return (
     <Suspense fallback={ // Simple sphere fallback while loading
       <mesh castShadow>
@@ -83,8 +83,10 @@ const PlayerToken: React.FC<PlayerTokenProps> = ({ modelPath, color, scale }) =>
         <meshStandardMaterial color={color} />
       </mesh>
     }>
-      {/* Pass scale prop down */}
-      <Model path={modelPath} color={color} scale={scale} />
+      {/* Pass scale prop down and apply position */}
+      <group position={[boardPosition.x, boardPosition.y, boardPosition.z]}>
+        <Model path={modelPath} color={color} scale={scale} />
+      </group>
     </Suspense>
   );
 };

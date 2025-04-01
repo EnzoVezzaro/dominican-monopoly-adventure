@@ -337,8 +337,8 @@ const Board = ({
           <PlayerToken
             modelPath={`/assets/3d/Players/${player.character.model}`}
             color={player.color}
-            scale={player.character.scale} // Pass the scale from character data
-            // isCurrent prop was removed in previous steps, ensure it's not here
+            scale={player.character.scale}
+            boardPosition={player.character.boardPosition} // Pass board position
           />
           {currentPlayer === index && (
             <group position={[0, 1.5, 0]}>
