@@ -24,7 +24,15 @@ interface GameBoardProps {
   onMovePlayer: (playerId: string, newPosition: number) => void;
   onUpdateMoney: (playerId: string, amount: number) => void;
   onUpdateJailStatus: (playerId: string, jailed: boolean) => void;
-  onJailCard: (playerId: string) => void; // Rename prop
+  onJailCard: (playerId: string) => void;
+}
+
+interface BoardProps {
+  properties: Property[];
+  players: Player[];
+  currentPlayer: number;
+  onSpaceClick: (property: Property | null, position: number) => void;
+  gameState: GameState;
 }
 
 // Create a texture loader once outside of component to avoid recreating on every render
@@ -60,13 +68,9 @@ const Board = ({
   properties, 
   players, 
   currentPlayer,
-  onSpaceClick 
-}: { 
-  properties: Property[], 
-  players: Player[],
-  currentPlayer: number,
-  onSpaceClick: (property: Property | null, position: number) => void
-}) => {
+  onSpaceClick,
+  gameState
+}: BoardProps) => {
   const boardRef = useRef<THREE.Group>(null);
   const [boardTexture, setBoardTexture] = useState<THREE.Texture>(fallbackTexture);
   
@@ -384,16 +388,18 @@ const Board = ({
       <CardStack
         position={[5, 0.2, -5]} 
         rotation={-0.5}
-        name="Surprise Cards"
+        name={`Targeta Superate (${gameState.cardStacks?.surprise?.length || 0})`}
         primaryColor="#1e88e5"
         secondaryColor="#0d47a1"
+        cardCount={gameState.cardStacks?.surprise?.length || 0}
       />
       <CardStack 
         position={[-5, 0.2, 5]}
         rotation={0.5} 
-        name="Community Chest"
+        name={`Pajita Navideña (${gameState.cardStacks?.box?.length || 0})`}
         primaryColor="#4caf50"
         secondaryColor="#2e7d32"
+        cardCount={gameState.cardStacks?.box?.length || 0}
       />
     </group>
   );
@@ -433,8 +439,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
       }
 
       const isSpecialCard = propertyAtPosition.type === 'surprise' || propertyAtPosition.type === 'box';
-      const isCorner = propertyAtPosition.position === 10 || propertyAtPosition.position === 20 || propertyAtPosition.position === 30 || propertyAtPosition.position === 40 || propertyAtPosition.position === 0;
-      const isBuyable = !isCorner && !isSpecialCard && !propertyAtPosition.owner && (propertyAtPosition.price !== undefined);
+      const isCorner = propertyAtPosition.position === 10 || propertyAtPosition.position === 20 || propertyAtPosition.position === 30 || propertyAtPosition.position === 0;
+      const isBuyable = !isCorner && !isSpecialCard && !propertyAtPosition.owner && 
+                       (propertyAtPosition.price !== undefined) && !isBot;
       
       if (isSpecialCard) {
         try {
@@ -457,15 +464,21 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 }
               }
             });
-            return;
+          } else {
+            // Draw a card from the stack
+            const drawnCard = cardStack[(currentPlayer.position + currentPlayer.money) % cardStack.length];
+            setPropertyForAction({
+              ...propertyAtPosition,
+              drawnCard
+            });
           }
+          return;
         } catch (error) {
           console.error('Error drawing card:', error);
           setPropertyForAction(null);
         }
-      } else {
-        setPropertyForAction(isBuyable ? propertyAtPosition : null);
       }
+      setPropertyForAction(isBuyable ? propertyAtPosition : null);
     }
   }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot]);
 
@@ -479,7 +492,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
       if (++rollCount === 4) {
         clearInterval(rollInterval);
         setDiceRolling(false);
-        onRollDice(latestDiceValues);
+        onRollDice([0, 2]);
       }
     }, 100);
   };
@@ -495,11 +508,12 @@ const GameBoard: React.FC<GameBoardProps> = ({
       <div className="flex-1 relative">
         <Canvas camera={{ position: [0, 30, 0], rotation: [0, Math.PI, 0], fov: 50, near: 0.1, far: 2000 }}>
           <ambientLight intensity={1.5} />
-          <Board 
+          <Board
             properties={gameState.properties as Property[]}
             players={gameState.players}
             currentPlayer={currentPlayerIndex}
             onSpaceClick={handleSpaceClick}
+            gameState={gameState}
           />
           <OrbitControls enablePan enableZoom enableRotate minPolarAngle={0} maxPolarAngle={Math.PI / 2.5} />
         </Canvas>

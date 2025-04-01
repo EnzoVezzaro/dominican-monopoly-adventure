@@ -8,7 +8,7 @@ export const surpriseCards: SpecialCardType[] = [
     description: 'Move forward to the Go space and collect $200',
     effect: {
       type: 'move',
-      value: 0, // Go directly to position 0
+      value: 0, // Move to position 0 (GO)
       target: 'self',
       description: 'Move to Go and collect $200'
     }

@@ -8,6 +8,8 @@ interface CardStackProps {
   name: string;
   primaryColor: string;
   secondaryColor: string;
+  cardCount: number;
+  onCardDrawn?: () => void;
 }
 
 const CardStack: React.FC<CardStackProps> = ({ 
@@ -15,7 +17,9 @@ const CardStack: React.FC<CardStackProps> = ({
   rotation = 0,
   name,
   primaryColor,
-  secondaryColor
+  secondaryColor,
+  cardCount,
+  onCardDrawn 
 }) => {
   return (
     <group position={position} rotation={[0, rotation, 0]}>
@@ -25,8 +29,8 @@ const CardStack: React.FC<CardStackProps> = ({
           <boxGeometry args={[1.5, 0.1, 2]} />
           <meshStandardMaterial color={primaryColor} />
         </mesh>
-        {/* Stack of cards */}
-        {[...Array(10)].map((_, i) => (
+        {/* Stack of cards - limited to 10 visually */}
+        {[...Array(Math.min(cardCount, 10))].map((_, i) => (
           <mesh 
             key={`card-${i}`} 
             position={[0, 0.05 + i*0.02, 0]} 
