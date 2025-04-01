@@ -1,69 +1,63 @@
-# Welcome to your Lovable project
+# Dominican Monopoly Adventure
 
-## Project info
+This is a fun, online game based on the Dominican Republic version of Monopoly!
 
-**URL**: https://lovable.dev/projects/6f36c897-7c93-4cf0-93ea-9e9e6c193fdc
+## Technologies Used
 
-## How can I edit this code?
+*   Vite
+*   TypeScript
+*   React
+*   Tailwind CSS
+*   shadcn-ui
 
-There are several ways of editing your application.
+## How to Run Locally
 
-**Use Lovable**
+1.  **Clone the repository:**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6f36c897-7c93-4cf0-93ea-9e9e6c193fdc) and start prompting.
+    ```bash
+    git clone https://github.com/EnzoVezzaro/dominican-monopoly-adventure.git
+    cd dominican-monopoly-adventure
+    ```
 
-Changes made via Lovable will be committed automatically to this repo.
+2.  **Install dependencies:**
 
-**Use your preferred IDE**
+    ```bash
+    npm install
+    ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+3.  **Run the development server:**
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+    ```bash
+    npm run dev
+    ```
 
-Follow these steps:
+    This will start the development server, and you can view the game in your browser.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Project Structure
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+*   `index.html`: The main HTML file.
+*   `src/`: Contains the source code for the game.
+    *   `components/`: React components.
+    *   `hooks/`: Custom React hooks.
+    *   `data/`: Game data.
+    *   `lib/`: Utility functions.
+    *   `types/`: TypeScript types.
+*   `public/`: Static assets (images, etc.).
+*   `tailwind.config.ts`: Tailwind CSS configuration.
+*   `vite.config.ts`: Vite configuration.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Contributing
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Contributions are welcome! Feel free to submit pull requests or open issues.
 
-**Edit a file directly in GitHub**
+## License
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+This project is licensed under the [MIT License](LICENSE.md). See the [LICENSE](LICENSE.md) file for details.
 
-**Use GitHub Codespaces**
+## Code of Conduct
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## What technologies are used for this project?
+## Issues
 
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/6f36c897-7c93-4cf0-93ea-9e9e6c193fdc) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+Please report any issues or suggestions on the [issue tracker](https://github.com/EnzoVezzaro/dominican-monopoly-adventure/issues).
