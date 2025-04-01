@@ -3,16 +3,13 @@ import { SpecialCardType, GameState, Player, Property } from '@/types/game';
 export type CardEffectAction = {
   type: 'move' | 'money' | 'jail' | 'get_out_of_jail';
   playerId: string;
-  position?: number;
-  amount?: number;
-  jailed?: boolean;
-  fromPlayerId?: string;
-  toPlayerId?: string;
+  value?: number;
+  target?: 'self' | 'all' | 'others';
 } & (
   { type: 'move' } | 
   { type: 'money' } | 
   { type: 'jail' } | 
-  { type: 'get_out_of_jail', fromPlayerId: string, toPlayerId: string }
+  { type: 'get_out_of_jail' }
 );
 
 export const handleCardEffect = (
@@ -21,24 +18,25 @@ export const handleCardEffect = (
   onCardEffect: (effect: CardEffectAction) => void
 ) => {
   let newPosition: number;
+  console.log('picked card: ', card);
+  
   switch(card.effect.type) {
     case 'move':
-      // Calculate new position
-      newPosition = currentPlayer.position;
-      if (card.effect.value === 0) {
-        newPosition = 0; // Go to Start
-      } else {
-        newPosition = (newPosition + card.effect.value) % 40;
-        if (newPosition < 0) newPosition += 40;
-      }
-      onCardEffect({ type: 'move', playerId: currentPlayer.id, position: newPosition });
+      // For move effects, pass the value and target directly
+      onCardEffect({ 
+        type: 'move', 
+        playerId: currentPlayer.id,
+        value: card.effect.value,
+        target: card.effect.target || 'self'
+      });
       break;
       
     case 'money':
       onCardEffect({ 
         type: 'money', 
         playerId: currentPlayer.id, 
-        amount: card.effect.value 
+        value: card.effect.value,
+        target: card.effect.target || 'self' 
       });
       break;
       
@@ -46,7 +44,8 @@ export const handleCardEffect = (
       onCardEffect({ 
         type: 'jail', 
         playerId: currentPlayer.id, 
-        jailed: card.effect.value === 1 
+        value: card.effect.value, // Jail effect uses 1 for jailed, 0 for unjailed
+        target: card.effect.target || 'self' 
       });
       break;
       
@@ -54,8 +53,7 @@ export const handleCardEffect = (
       onCardEffect({ 
         type: 'get_out_of_jail', 
         playerId: currentPlayer.id,
-        fromPlayerId: card.effect.fromPlayerId || currentPlayer.id,
-        toPlayerId: card.effect.toPlayerId || currentPlayer.id
+        target: card.effect.target || 'self'
       });
       break;
   }

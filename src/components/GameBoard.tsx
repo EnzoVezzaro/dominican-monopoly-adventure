@@ -585,32 +585,39 @@ const GameBoard: React.FC<GameBoardProps> = ({
                   propertyForAction.drawnCard,
                   currentPlayer,
                   (effect: CardEffectAction) => {
+
+                    console.log('card: ', effect);
+                    
                     if (!effect) {
                       console.error('No effect provided');
                       return;
                     }
                     
                     switch(effect.type) {
-                      case 'move':
-                        if (effect.position === undefined) {
+                      case 'move': {
+                        if (effect.value === undefined) {
                           console.error('Missing position for move effect');
                           return;
                         }
-                        onMovePlayer(effect.playerId, effect.position);
+                        // Ensure position is within 0-39 range
+                        console.log('effect.value: ', effect.value);
+                        onMovePlayer(effect.playerId, effect.value);
                         break;
+                      }
                       case 'money':
-                        if (effect.amount === undefined) {
+                        if (effect.value === undefined) {
                           console.error('Missing amount for money effect');
                           return;
                         }
-                        onUpdateMoney(effect.playerId, effect.amount);
+                        onUpdateMoney(effect.playerId, effect.value);
                         break;
                       case 'jail':
-                        if (effect.jailed === undefined) {
+                        if (effect.value === undefined) {
                           console.error('Missing jailed status for jail effect');
                           return;
                         }
-                        onUpdateJailStatus(effect.playerId, effect.jailed);
+                        // Convert numeric value to boolean (1 = jailed, 0 = unjailed)
+                        onUpdateJailStatus(effect.playerId, effect.value === 1);
                         break;
                       case 'get_out_of_jail':
                         onJailCard(effect.playerId); // Rename function call

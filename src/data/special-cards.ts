@@ -8,7 +8,7 @@ export const surpriseCards: SpecialCardType[] = [
     description: 'Move forward to the Go space and collect $200',
     effect: {
       type: 'move',
-      value: 0, // Move to position 0 (GO)
+      value: 0, // Explicit move to position 0 (GO)
       target: 'self',
       description: 'Move to Go and collect $200'
     }
@@ -157,6 +157,7 @@ export const boxCards: SpecialCardType[] = [
       type: 'get_out_of_jail',
       value: 1,
       target: 'self',
+      playerId: 'current', // Will be replaced with actual player ID when drawn
       description: 'Get out of Jail Free card'
     }
   },
