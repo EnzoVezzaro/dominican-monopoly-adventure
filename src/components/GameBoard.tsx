@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, Suspense } from 'react'; // Added Suspense
 import { Canvas, useLoader, useFrame } from '@react-three/fiber'; // Added useLoader and useFrame
-import { OrbitControls, Text, useTexture, useFBX } from '@react-three/drei';
+import { OrbitControls, Text, useTexture, useFBX, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'; // Added OBJLoader
 import { Button } from '@/components/ui/button';
@@ -97,9 +97,10 @@ const Board = ({
   const hotelModel = useFBX('/assets/3d/Buildings/Building_3.fbx');
   
   const goTileModel = useFBX('/assets/3d/Props/Traffic_Light_2.fbx');
-  // const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
-  const goJailModel = useFBX('/assets/3d/Buildings/Jail/1.fbx');
-  const parkModel = useFBX('/assets/3d/Props/Tram_Stop_1.fbx');
+  
+  const jailModel = useGLTF('/assets/3d/Buildings/Jail/2.glb');
+  const goJailModel = useGLTF('/assets/3d/Buildings/Raid/1.glb');
+  const parkModel = useGLTF('/assets/3d/Buildings/Park/1.glb');
   
   // Create board spaces
   const boardSpaces = [];
@@ -168,24 +169,34 @@ const Board = ({
                 rotation={[0, Math.PI/2, 0]}
               />
             </Suspense>
+          ) : i === 10 ? (
+            // Parking space (position 20)
+            <Suspense fallback={null}>
+              <primitive 
+                object={jailModel.scene.clone()}
+                position={[-0.5, +0.65, -0.5]}
+                scale={2}
+                rotation={[0, -260, 0]}
+              />
+            </Suspense>
           ) : i === 20 ? (
             // Parking space (position 20)
             <Suspense fallback={null}>
               <primitive 
-                object={parkModel.clone()}
-                position={[0.2, 0, 0.3]}
-                scale={0.15}
-                rotation={[0, 180, 0]}
+                object={parkModel.scene.clone()}
+                position={[-0.5, +0.32, -0.5]}
+                scale={2}
+                rotation={[0, -260, 0]}
               />
             </Suspense>
           ) : i === 30 ? (
             // Go to Jail space (position 30)
             <Suspense fallback={null}>
               <primitive 
-                object={goJailModel.clone()}
-                position={[0, 0.62, 0]}
-                scale={0.01}
-                rotation={[0, -Math.PI/2, 0]}
+                object={goJailModel.scene.clone()}
+                position={[-0.5, +0.45, -0.5]}
+                scale={2.5}
+                rotation={[0, 45, 0]}
               />
             </Suspense>
           ) : (
@@ -278,19 +289,19 @@ const Board = ({
       const cornerOffset = boardSize / 2 - spaceSize / 2;
       if (position < 10) { 
         if (position === 0) { x = cornerOffset; z = cornerOffset; } 
-        else { x = cornerOffset - position * spaceSize - 1.1; z = cornerOffset - 0.85; }
+        else { x = cornerOffset - position * spaceSize - 1.1; z = cornerOffset + 0.1; }
       }
       else if (position < 20) { 
         if (position === 10) { x = -cornerOffset; z = cornerOffset; }
-        else { x = -cornerOffset + spaceSize - 1; z = cornerOffset - (position - 10) * spaceSize - 1.1; }
+        else { x = -cornerOffset + spaceSize - 1.8; z = cornerOffset - (position - 10) * spaceSize - 1.1; }
       }
       else if (position < 30) { 
         if (position === 20) { x = -cornerOffset; z = -cornerOffset; }
-        else { x = -cornerOffset + (position - 20) * spaceSize + 1.1; z = -cornerOffset + 0.85; }
+        else { x = -cornerOffset + (position - 20) * spaceSize + 1.1; z = -cornerOffset + 0; }
       }
       else { 
         if (position === 30) { x = cornerOffset; z = -cornerOffset; }
-        else { x = cornerOffset - 0.85; z = -cornerOffset + (position - 30) * spaceSize + 1.1; }
+        else { x = cornerOffset + 0; z = -cornerOffset + (position - 30) * spaceSize + 1.1; }
       }
       
       // Adjust vertical position slightly for the model base
