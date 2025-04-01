@@ -100,7 +100,7 @@ const GameCreation: React.FC<GameCreationProps> = ({ onCreateGame }) => {
                         {/* Card now wraps the preview and provides border indication */}
                         <Card className={`border-2 ${index === currentSnap ? 'border-game-primary' : 'border-transparent'} overflow-hidden`}>
                           <CardContent className="p-0 aspect-square h-24 w-full"> {/* Adjust height/width as needed */}
-                            <CharacterPreview modelPath={`/assets/3d/Players/${char.model}`} />
+                            <CharacterPreview modelPath={`/assets/3d/Players/${char.model}`} scalePreview={char.scalePreview} />
                           </CardContent>
                         </Card>
                         {/* Keep name below the preview */}

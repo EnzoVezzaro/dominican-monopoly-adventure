@@ -1,5 +1,7 @@
 export interface Character {
   name: string;
+  scale: number;
+  scalePreview: number;
   buildings: {
     house_1: string;
     house_2: string;
@@ -13,7 +15,9 @@ export interface Character {
 
 export const characters: Character[] = [
   {
-    name: "Ambulance",
+    name: "Platano",
+    scale: 0.75,
+    scalePreview: 0.08, 
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -21,23 +25,27 @@ export const characters: Character[] = [
       house_4: "Building_4.fbx",
       hotel: "Building_5.fbx"
     },
-    model: "Ambulance.fbx",
+    model: "platano.glb",
     hasAnimation: false
   },
   {
-    name: "Bus",
+    name: "Guira",
+    scale: 0.005,
+    scalePreview: 0.0008,
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
       house_3: "Building_3.fbx",
       house_4: "Building_4.fbx",
-      hotel: "Building_5.fbx"
+      hotel: "guira.fbx"
     },
-    model: "Bus_1.fbx",
+    model: "guira.fbx",
     hasAnimation: false
   },
   {
-    name: "Car",
+    name: "Tambora",
+    scale: 0.05,
+    scalePreview: 0.04, 
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -45,11 +53,13 @@ export const characters: Character[] = [
       house_4: "Building_4.fbx",
       hotel: "Building_5.fbx"
     },
-    model: "Car_1_1.fbx",
+    model: "drum.glb",
     hasAnimation: false
   },
   {
-    name: "Truck",
+    name: "Concho",
+    scale: 0.75,
+    scalePreview: 0.06, 
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -57,11 +67,13 @@ export const characters: Character[] = [
       house_4: "Building_4.fbx",
       hotel: "Building_5.fbx"
     },
-    model: "Main_Truck_1.fbx",
+    model: "concho.glb",
     hasAnimation: false
   },
   {
     name: "Police",
+    scale: 0.75,
+    scalePreview: 0.008,
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -73,7 +85,9 @@ export const characters: Character[] = [
     hasAnimation: false
   },
   {
-    name: "Taxi",
+    name: "Campesino",
+    scale: 0.75,
+    scalePreview: 0.06, 
     buildings: {
       house_1: "Building_1.fbx",
       house_2: "Building_2.fbx",
@@ -81,19 +95,7 @@ export const characters: Character[] = [
       house_4: "Building_4.fbx",
       hotel: "Building_5.fbx"
     },
-    model: "Taxi.fbx",
+    model: "campesino.glb",
     hasAnimation: false
   },
-  {
-    name: "Train",
-    buildings: {
-      house_1: "Building_1.fbx",
-      house_2: "Building_2.fbx",
-      house_3: "Building_3.fbx",
-      house_4: "Building_4.fbx",
-      hotel: "Building_5.fbx"
-    },
-    model: "Train.fbx",
-    hasAnimation: false
-  }
 ];

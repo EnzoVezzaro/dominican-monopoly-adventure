@@ -98,7 +98,7 @@ const Board = ({
   
   const goTileModel = useFBX('/assets/3d/Props/Traffic_Light_2.fbx');
   // const jailModel = useFBX('/assets/3d/Buildings/Building_6.fbx');
-  const goJailModel = useFBX('/assets/3d/Buildings/Building_7.fbx');
+  const goJailModel = useFBX('/assets/3d/Buildings/Jail/1.fbx');
   const parkModel = useFBX('/assets/3d/Props/Tram_Stop_1.fbx');
   
   // Create board spaces
@@ -183,9 +183,9 @@ const Board = ({
             <Suspense fallback={null}>
               <primitive 
                 object={goJailModel.clone()}
-                position={[0, 0, 0]}
-                scale={0.09}
-                rotation={[0, Math.PI/2, 0]}
+                position={[0, 0.62, 0]}
+                scale={0.01}
+                rotation={[0, -Math.PI/2, 0]}
               />
             </Suspense>
           ) : (
@@ -334,10 +334,11 @@ const Board = ({
       
       return (
         <group key={`player-${player.id}`} position={[x, yPos, z]} rotation={[0, baseRotation + cornerRotation, 0]}>
-          <PlayerToken 
+          <PlayerToken
             modelPath={`/assets/3d/Players/${player.character.model}`}
             color={player.color}
-            isCurrent={currentPlayer === index}
+            scale={player.character.scale} // Pass the scale from character data
+            // isCurrent prop was removed in previous steps, ensure it's not here
           />
           {currentPlayer === index && (
             <group position={[0, 1.5, 0]}>

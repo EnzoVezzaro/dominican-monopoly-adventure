@@ -1,63 +1,90 @@
-import React, { Suspense } from 'react';
-import { useFBX } from '@react-three/drei';
+import React, { Suspense, useMemo } from 'react';
+import { useGLTF, useFBX } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface PlayerTokenProps {
   modelPath: string;
-  color: string; // To tint the model or use as fallback
-  isCurrent: boolean;
+  color: string; // Used for fallback or potentially minor tinting if needed
+  scale: number; // Add scale prop for the token size
 }
 
-// Helper component to load and display the model
-const Model: React.FC<{ path: string; color: string; isCurrent: boolean }> = ({ path, color, isCurrent }) => {
-  const fbx = useFBX(path);
-
-  // Apply color tinting or emissive effect if needed
-  // Note: This might not work perfectly on all FBX materials.
-  // It's often better if models are designed with materials that can be easily colored.
-  fbx.traverse((child) => {
+// Helper function to apply any necessary material adjustments (optional)
+// For now, we won't apply color tints to avoid overriding model textures.
+// This function remains as a placeholder if future adjustments are needed.
+const applyMaterialChanges = (object: THREE.Object3D, color: string) => {
+  object.traverse((child) => {
     if (child instanceof THREE.Mesh) {
-      // Option 1: Simple color overlay (might look flat)
-      // child.material.color.set(color);
-
-      // Option 2: Emissive for current player (glow)
-      if (isCurrent) {
-        // Ensure material is MeshStandardMaterial or similar that supports emissive
-        if (child.material instanceof THREE.MeshStandardMaterial || child.material instanceof THREE.MeshPhysicalMaterial) {
-          child.material.emissive.set(color);
-          child.material.emissiveIntensity = 0.6; // Adjust intensity
-        } else {
-           // Fallback: just set color if emissive isn't supported
-           child.material.color?.set(color);
-        }
-      } else {
-         // Reset emissive if not current
-         if (child.material instanceof THREE.MeshStandardMaterial || child.material instanceof THREE.MeshPhysicalMaterial) {
-            child.material.emissive.set(0x000000); // Black (no emission)
-            child.material.emissiveIntensity = 0;
-         }
-         // Ensure base color is set correctly if needed (might depend on original model)
-         // child.material.color?.set(0xffffff); // Example: reset to white if needed
-      }
-      child.material.needsUpdate = true;
+      // Example: If you wanted to force a basic color tint:
+      // if (child.material instanceof THREE.MeshStandardMaterial || child.material instanceof THREE.MeshPhysicalMaterial) {
+      //   child.material.color.set(color);
+      // } else {
+      //    child.material.color?.set(color);
+      // }
+      // child.material.needsUpdate = true;
     }
   });
-
-  // Scale the model appropriately for the board space
-  // This scale might need significant adjustment based on original model sizes
-  // Increased scale from 0.005 to 0.01
-  return <primitive object={fbx} scale={0.1} rotation={[0, Math.PI, 0]} />; 
 };
 
-const PlayerToken: React.FC<PlayerTokenProps> = ({ modelPath, color, isCurrent }) => {
+
+// Component for loading GLB/GLTF models
+const GltfModel: React.FC<{ path: string; color: string; scale: number }> = ({ path, color, scale }) => { // Add scale prop
+  const gltf = useGLTF(path);
+  const scene = useMemo(() => gltf.scene.clone(), [gltf.scene]); // Clone to avoid modifying the original cache
+
+  // Apply material changes (currently does nothing)
+  applyMaterialChanges(scene, color);
+
+  // Scale and rotate - Use passed scale
+  return <primitive object={scene} scale={scale} rotation={[0, Math.PI, 0]} />;
+};
+
+// Component for loading FBX models
+const FbxModel: React.FC<{ path: string; color: string; scale: number }> = ({ path, color, scale }) => { // Add scale prop
+  const fbx = useFBX(path);
+  const scene = useMemo(() => fbx.clone(), [fbx]); // Clone to avoid modifying the original cache
+
+  // Apply material changes (currently does nothing)
+  applyMaterialChanges(scene, color);
+
+  // Scale and rotate - Use passed scale
+  return <primitive object={scene} scale={scale} rotation={[0, Math.PI, 0]} />;
+};
+
+
+// Main Model component decides which loader to use
+const Model: React.FC<{ path: string; color: string; scale: number }> = ({ path, color, scale }) => { // Add scale prop
+  const extension = path.split('.').pop()?.toLowerCase();
+
+  if (extension === 'glb' || extension === 'gltf') {
+    return <GltfModel path={path} color={color} scale={scale} />; // Pass scale down
+  } else if (extension === 'fbx') {
+    return <FbxModel path={path} color={color} scale={scale} />; // Pass scale down
+  } else {
+    console.warn(`Unsupported model format for path: ${path}`);
+    // Render fallback or null
+    return (
+        <mesh castShadow>
+            <boxGeometry args={[0.5, 0.5, 0.5]} />
+            <meshStandardMaterial color="red" />
+            <primitive object={new THREE.AxesHelper(1)} />
+        </mesh>
+    ); // Simple red box as an error indicator
+  }
+};
+
+
+const PlayerToken: React.FC<PlayerTokenProps> = ({ modelPath, color, scale }) => { // Destructure scale
+
   return (
     <Suspense fallback={ // Simple sphere fallback while loading
       <mesh castShadow>
         <sphereGeometry args={[0.4, 16, 16]} />
-        <meshStandardMaterial color={color} emissive={isCurrent ? color : undefined} emissiveIntensity={0.5} />
+        {/* Removed emissive based on isCurrent */}
+        <meshStandardMaterial color={color} />
       </mesh>
     }>
-      <Model path={modelPath} color={color} isCurrent={isCurrent} />
+      {/* Pass scale prop down */}
+      <Model path={modelPath} color={color} scale={scale} />
     </Suspense>
   );
 };
