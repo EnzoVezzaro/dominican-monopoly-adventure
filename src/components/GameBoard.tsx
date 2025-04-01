@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, Suspense } from 'react'; // Added Suspense
 import { Canvas, useLoader, useFrame } from '@react-three/fiber'; // Added useLoader and useFrame
 import { OrbitControls, Text, useTexture, useFBX, useGLTF } from '@react-three/drei';
+import CardStack from './CardStack';
 import * as THREE from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'; // Added OBJLoader
 import { Button } from '@/components/ui/button';
@@ -378,6 +379,22 @@ const Board = ({
       {centerContent}
       {boardSpaces}
       {playerTokens}
+      
+      {/* Special card stacks positioned diagonally opposite each other */}
+      <CardStack
+        position={[5, 0.2, -5]} 
+        rotation={-0.5}
+        name="Surprise Cards"
+        primaryColor="#1e88e5"
+        secondaryColor="#0d47a1"
+      />
+      <CardStack 
+        position={[-5, 0.2, 5]}
+        rotation={0.5} 
+        name="Community Chest"
+        primaryColor="#4caf50"
+        secondaryColor="#2e7d32"
+      />
     </group>
   );
 };
