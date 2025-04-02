@@ -424,25 +424,39 @@ const GameBoard: React.FC<GameBoardProps> = ({
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isBot = currentPlayer?.type === 'bot';
   const isMyTurn = currentPlayer && !isBot && currentPlayer.id === PeerService.getCurrentPeerId();
-  
-  useEffect(() => {
-    // Only check for new actions if we don't already have one pending
-    if (currentPlayer && !propertyForAction) {
-      const propertyAtPosition = gameState.properties.find(
-        p => p.position === currentPlayer.position
-      );
-      
-      // Skip if we're not on a property or it's not our turn
-      if (!propertyAtPosition || !gameState.hasDiceRolled || isBot || 
-          currentPlayer.id !== PeerService.getCurrentPeerId()) {
-        return;
-      }
 
+  const handleRollDice = () => {
+    setDiceRolling(true);
+    let rollCount = 0;
+    let latestDiceValues: [number, number] = [0, 0];
+    const rollInterval = setInterval(() => {
+      latestDiceValues = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+      setDiceValues(latestDiceValues);
+      if (++rollCount === 4) {
+        clearInterval(rollInterval);
+        setDiceRolling(false);
+        onRollDice(latestDiceValues);
+        console.log('last dice: ', latestDiceValues);
+        handlePosition(latestDiceValues);
+      }
+    }, 100);
+  };
+
+  const handlePosition = (diceValues) => {
+    // Only check for new actions if we don't already have one pending
+    if (currentPlayer) {
+      const propertyAtPosition = gameState.properties.find(
+        p => p.position === (currentPlayer.position + diceValues[0] + diceValues[1]) % 40
+      );
+
+      console.log('user in position: ', propertyAtPosition);
+      
       const isSpecialCard = propertyAtPosition.type === 'surprise' || propertyAtPosition.type === 'box';
       const isCorner = propertyAtPosition.position === 10 || propertyAtPosition.position === 20 || propertyAtPosition.position === 30 || propertyAtPosition.position === 0;
       const isBuyable = !isCorner && !isSpecialCard && !propertyAtPosition.owner && 
-                       (propertyAtPosition.price !== undefined) && !isBot;
+                       (propertyAtPosition.price !== undefined || propertyAtPosition.price === 0);
       
+      console.log('user in position isSpecialCard: ', isSpecialCard);     
       if (isSpecialCard) {
         try {
           const stackType = propertyAtPosition.type === 'surprise' ? 'surprise' : 'box';
@@ -466,38 +480,33 @@ const GameBoard: React.FC<GameBoardProps> = ({
             });
           } else {
             // Draw a card from the stack
-            const drawnCard = cardStack[(currentPlayer.position + currentPlayer.money) % cardStack.length];
+            const drawnCard = cardStack[0];
+            const newCardStack = [...cardStack];
+            newCardStack.shift();
+            console.log('new card: ', drawnCard, cardStack);
+            
+            gameState.cardStacks[stackType] = newCardStack;
+
             setPropertyForAction({
               ...propertyAtPosition,
               drawnCard
             });
           }
-          return;
         } catch (error) {
           console.error('Error drawing card:', error);
           setPropertyForAction(null);
         }
+      } else {
+        console.log('no special card: ', isBuyable, propertyAtPosition);
+        setPropertyForAction(isBuyable ? propertyAtPosition : null);
       }
-      setPropertyForAction(isBuyable ? propertyAtPosition : null);
     }
-  }, [currentPlayer, gameState.properties, gameState.hasDiceRolled, isBot]);
-
-  const handleRollDice = () => {
-    setDiceRolling(true);
-    let rollCount = 0;
-    let latestDiceValues: [number, number] = [0, 0];
-    const rollInterval = setInterval(() => {
-      latestDiceValues = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
-      setDiceValues(latestDiceValues);
-      if (++rollCount === 4) {
-        clearInterval(rollInterval);
-        setDiceRolling(false);
-        onRollDice(latestDiceValues);
-      }
-    }, 100);
   };
+  
 
   const handleSpaceClick = useCallback((property: Property | null, position: number) => {
+    console.log('space click: ', property);
+    
     if (property) {
       setViewedProperty(property);
     }
@@ -599,9 +608,16 @@ const GameBoard: React.FC<GameBoardProps> = ({
                           console.error('Missing position for move effect');
                           return;
                         }
+
                         // Ensure position is within 0-39 range
                         console.log('effect.value: ', effect.value);
                         onMovePlayer(effect.playerId, effect.value);
+                        // if card advance to GO
+                        if (effect.value === 0){
+                          setTimeout(() => {
+                            onUpdateMoney(effect.playerId, 200);
+                          }, 500);
+                        }
                         break;
                       }
                       case 'money':
@@ -618,6 +634,10 @@ const GameBoard: React.FC<GameBoardProps> = ({
                         }
                         // Convert numeric value to boolean (1 = jailed, 0 = unjailed)
                         onUpdateJailStatus(effect.playerId, effect.value === 1);
+                        // sent player to jail
+                        setTimeout(() => {
+                          onMovePlayer(effect.playerId, 10);
+                        }, 500);
                         break;
                       case 'get_out_of_jail':
                         onJailCard(effect.playerId); // Rename function call

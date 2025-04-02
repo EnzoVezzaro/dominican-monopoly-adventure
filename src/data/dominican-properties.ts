@@ -115,7 +115,7 @@ export const dominicanProperties: Property[] = [
   // JAIL corner
   {
     id: 'jail',
-    name: 'Cárcel / Solo Visitando',
+    name: 'Cárcel LA VICTORIA / Solo Visitando',
     price: 0,
     rent: [],
     group: 'utility',
@@ -335,7 +335,7 @@ export const dominicanProperties: Property[] = [
   // GO TO JAIL corner
   {
     id: 'go-jail',
-    name: 'Ve a la Cárcel',
+    name: "Esta es una redada, pa' LA VICTORIA!",
     price: 0,
     rent: [],
     color: 'gray',

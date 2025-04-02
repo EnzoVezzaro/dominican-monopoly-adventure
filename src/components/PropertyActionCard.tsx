@@ -59,8 +59,8 @@ const renderPropertyDetails = (property: Property) => {
   );
 };
 
-const renderCard = (card: SpecialCardType) => {
-  console.log('show card: ', card);
+const renderCardPicked = (card: SpecialCardType) => {
+  console.log('[renderCardPicked] show card: ', card);
   return (
     <div className="text-center py-4">
       {card.type === 'surprise' ? (
@@ -72,6 +72,24 @@ const renderCard = (card: SpecialCardType) => {
       <p className="text-gray-600 mb-4">{card.description}</p>
       <div className="bg-gray-100 p-3 rounded-lg">
         <p className="font-semibold">{card.effect.description}</p>
+      </div>
+    </div>
+  )
+};
+
+const renderCardView = (card: Property) => {
+  console.log('[renderCardView] show card: ', card);
+  return (
+    <div className="text-center py-4">
+      {card.type === 'surprise' ? (
+        <Gift size={48} className="mx-auto mb-4 text-purple-600" />
+      ) : (
+        <Box size={48} className="mx-auto mb-4 text-yellow-500" />
+      )}
+      <h3 className="text-xl font-bold mb-2">{card.name}</h3>
+      <p className="text-gray-600 mb-4">{`Esta es una ${card.type}!`}</p>
+      <div className="bg-gray-100 p-3 rounded-lg">
+        <p className="font-semibold">{`Si caes en estas cartas, recibiras una sorpresa o penalidad.`}</p>
       </div>
     </div>
   )
@@ -93,14 +111,15 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
   const showCardActions = isCardView && property.drawnCard;
   let specialCardInfo;
   if (isSpecialCard){
-    specialCardInfo = (property.type === 'surprise' ? surpriseCards : boxCards).filter((card)=>card.id === property.id)[0];
-    if (!specialCardInfo){
-      console.log('card not found for property: ', property);
+    if (property.type === 'box' || property.type === 'surprise' && !isCardView){
+      specialCardInfo = property.drawnCard;
+      console.log('special card picker: ', specialCardInfo);
+    } else {
+      specialCardInfo = property;
     }
-    
   }
 
-  console.log('isvie: ', property, showActions, isCardView);
+  console.log('aqui: ', property);
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onPass()}>
@@ -149,7 +168,8 @@ const PropertyActionCard: React.FC<PropertyActionCardProps> = ({
 
           <CardContent className="p-0 space-y-3">
             {isSpecialCard ? (
-              renderCard(specialCardInfo)
+              isSpecialCard && !isCardView && renderCardPicked(specialCardInfo) ||
+              isSpecialCard && isCardView && renderCardView(specialCardInfo)
             ) : (
               <>
                 <div className="flex items-center justify-between text-lg border-b pb-2">
