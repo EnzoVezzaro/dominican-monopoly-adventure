@@ -492,7 +492,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
       if (++rollCount === 4) {
         clearInterval(rollInterval);
         setDiceRolling(false);
-        onRollDice([0, 2]);
+        onRollDice(latestDiceValues);
       }
     }, 100);
   };
